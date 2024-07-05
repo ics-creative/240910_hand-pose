@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset='UTF-8' />
+  <link rel='stylesheet' href='css/reset.css' />
+  <link rel='stylesheet' href='css/style.css' />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Kiwi+Maru&display=swap" rel="stylesheet">
+  <!-- TensorFlow.js -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/knn-classifier"></script>
+</head>
+<body>
+<div id="console"></div>
+<video autoplay playsinline muted id="webcam" width="640" height="480" style="transform: scaleX(-1)"></video>
+<div class="buttons">
+  <button class="button" id="class-a">ピース</button>
+  <button class="button" id="class-b">指ハート</button>
+  <button class="button" id="class-c">ほっぺハート</button>
+  <button class="button" id="class-d">なし</button>
+  <button class="button download" id="download">download</button>
+</div>
+<script src='js/knn.js'></script>
+</body>
+</html>
