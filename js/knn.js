@@ -1,9 +1,9 @@
 const classifier = knnClassifier.create();
 const webcamElement = document.getElementById('webcam');
 const downloadButton = document.getElementById('download');
-let net;
-let knnResult;
+let detector;
 
+// ダウンロードボタンのイベントリスナーを追加する関数
 function addEventListeners() {
   downloadButton.addEventListener('click', () => {
     downloadModel();
@@ -12,6 +12,7 @@ function addEventListeners() {
 
 // KNNモデルをダウンロードする関数
 function downloadModel() {
+  // モデルのデータセットを取得し、JSON文字列に変換
   const str = JSON.stringify(
     Object.entries(classifier.getClassifierDataset()).map(([label, data]) => [
       label,
@@ -19,15 +20,22 @@ function downloadModel() {
       data.shape,
     ])
   );
-  const blob = new Blob([str], {type: 'text/plain'});
-  const url = URL.createObjectURL(blob);
+  const blob = new Blob([str], {type: 'text/plain'}); // JSON文字列をBlobとして作成
+
+  const url = URL.createObjectURL(blob); // BlobからURLを作成
+
+  // ダウンロード用のリンクを作成
   const a = document.createElement('a');
   a.href = url;
   a.download = 'knn-classifier-model.txt';
+
+  // リンクをドキュメントに追加してクリックイベントを発火
   document.body.appendChild(a);
   a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+
+  document.body.removeChild(a); // リンクをドキュメントから削除
+
+  URL.revokeObjectURL(url); // 作成したURLを解放
 }
 
 // KNNモデルを読み込む非同期関数
@@ -35,7 +43,6 @@ async function loadKNNModel() {
   const response = await fetch('models/knn-classifier-model.txt');
   const txt = await response.text();
 
-  // https://github.com/tensorflow/tfjs/issues/633
   classifier.setClassifierDataset(
     Object.fromEntries(
       JSON.parse(txt).map(([label, data, shape]) => [
@@ -50,41 +57,81 @@ async function loadKNNModel() {
   });
 }
 
+// 手を検知するためのモデルを初期化する関数
+async function createHandDetector() {
+  const model = handPoseDetection.SupportedModels.MediaPipeHands;
+  const detectorConfig = {
+    runtime: 'mediapipe', // or 'tfjs',
+    solutionPath: 'https://cdn.jsdelivr.net/npm/@mediapipe/hands',
+    modelType: 'full',
+  }
+  detector = await handPoseDetection.createDetector(model, detectorConfig);
+
+  return new Promise((resolve) => {
+    resolve(detector);
+  });
+}
+
+// 画像から手のランドマークを取得する関数
+async function getHandLandmarks(imageElement) {
+  const hands = await detector.estimateHands(imageElement);
+  if (hands.length > 0) {
+    return hands[0].keypoints3D.map(point => [point.x, point.y, point.z]);
+  }
+  return null;
+}
+
+// メインアプリケーションの関数
 async function app() {
-  net = await mobilenet.load();
+  await createHandDetector(); // モデルの読み込み
 
-  const webcam = await tf.data.webcam(webcamElement);
+  const webcam = await tf.data.webcam(webcamElement); // ウェブカメラの初期化
 
+  // 新しい例を追加する関数
   const addExample = async classId => {
     const img = await webcam.capture();
+    const landmarks = await getHandLandmarks(webcamElement);
 
-    const activation = net.infer(img, true);
+    if (landmarks) {
+      const flattened = landmarks.flat();
+      const tensor = tf.tensor(flattened).reshape([1, flattened.length]);
 
-    classifier.addExample(activation, classId);
+      classifier.addExample(tensor, classId);
+      tensor.dispose();
+    }
 
     img.dispose();
   };
 
+  // ボタンのイベントリスナーを追加
   document.getElementById('class-a').addEventListener('click', () => addExample(0));
   document.getElementById('class-b').addEventListener('click', () => addExample(1));
   document.getElementById('class-c').addEventListener('click', () => addExample(2));
   document.getElementById('class-d').addEventListener('click', () => addExample(3));
 
+  // 手のポーズを予測
   while (true) {
     if (classifier.getNumClasses() > 0) {
       const img = await webcam.capture();
+      const landmarks = await getHandLandmarks(webcamElement);
 
-      const activation = net.infer(img, 'conv_preds');
-      const result = await classifier.predictClass(activation);
+      // デフォルトの予測結果は「なし」とする
+      let predictionText = 'prediction: なし\n\nprobability: 1';
 
-      const classes = ['ピース', '指ハート', 'ほっぺハート', 'なし'];
-      document.getElementById('console').innerText = `
-        prediction: ${classes[result.label]}\n
-        probability: ${Math.round(result.confidences[result.label] * 100) / 100}
-      `;
+      // 手のランドマークが検出された場合のみ予測を更新
+      if (landmarks) {
+        const flattened = landmarks.flat();
+        const tensor = tf.tensor(flattened).reshape([1, flattened.length]);
 
-      knnResult = classes[result.label];
+        const result = await classifier.predictClass(tensor);
+        const classes = ['ピース', '指ハート', 'ほっぺハート', 'なし'];
+        predictionText = `prediction: ${classes[result.label]}\n\nprobability: ${Math.round(result.confidences[result.label] * 100) / 100}`;
 
+        tensor.dispose();
+      }
+
+      // 予測結果を表示
+      document.getElementById('console').innerText = predictionText;
       img.dispose();
     }
 
@@ -94,9 +141,9 @@ async function app() {
 
 // 初期化関数
 async function init() {
-  await loadKNNModel() // モデルを読み込む
+  await loadKNNModel(); // モデルを読み込む
   addEventListeners(); // イベントリスナーを設定
-  app();
+  app(); // メインアプリケーションを実行
 }
 
 // 初期化関数を呼び出す

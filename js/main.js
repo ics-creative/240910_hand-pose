@@ -5,7 +5,7 @@ let knnProbability; // 確率を保持する変数
 let classifier;
 let net;
 const decoLoadedImage = {}; // 画像を格納するオブジェクト
-const decoImageList = ['star', 'peace01', 'heart01', 'heart02', 'heart03']; // 画像のリスト
+const decoImageList = ['peace01', 'peace02', 'heart01', 'heart02', 'heart03']; // 画像のリスト
 
 let webcam;
 const webcamElement = document.getElementById('webcam');
@@ -48,7 +48,7 @@ function initCanvas() {
   canvasWrapperElement.style.height = `${webcamElement.videoHeight}px`;
 }
 
-// Webcamの画像をCanvasに描画する関数
+// ウェブカメラの画像をCanvasに描画する関数
 function drawWebCamToCanvas() {
   ctx.clearRect(0, 0, canvasElement.width, canvasElement.height);
 
@@ -68,59 +68,19 @@ function drawWebCamToCanvas() {
   ctx.restore(); // 反転を元に戻す
 }
 
-// 手を検知するためのモデルを初期化する関数
-async function createHandDetector() {
-  const model = handPoseDetection.SupportedModels.MediaPipeHands;
-  const detectorConfig = {
-    runtime: 'mediapipe', // or 'tfjs',
-    solutionPath: 'https://cdn.jsdelivr.net/npm/@mediapipe/hands',
-    modelType: 'full'
-  }
-  detector = await handPoseDetection.createDetector(model, detectorConfig);
-
-  return new Promise((resolve) => {
-    resolve(detector);
-  });
-}
-
-// 手を検知する関数
-async function estimateHands() {
-  const estimationConfig = { flipHorizontal: false };
-
-  results = await detector.estimateHands(webcamElement, estimationConfig);
-}
-
-// ポーズを検知する関数
-async function estimatePose() {
-  if (classifier.getNumClasses() > 0) {
-    const img = await webcam.capture();
-
-    const activation = net.infer(img, 'conv_preds');
-    const result = await classifier.predictClass(activation);
-
-    const classes = ['ピース', '指ハート', 'ほっぺハート', 'なし'];
-    const probabilities = result.confidences; // 各クラスの確率を取得
-
-    knnResult = classes[result.label];
-    knnProbability = probabilities[result.label]; // 確率を変数に保存
-
-    img.dispose();
-  }
-
-  await tf.nextFrame();
-}
-
+// KNN分類器とMobileNetモデルをセットアップする関数
 async function setupKNN() {
-  classifier = knnClassifier.create();
-  net = await mobilenet.load();
+  classifier = knnClassifier.create(); // KNN分類器を作成
+  net = await mobilenet.load(); // MobileNetモデルをロード
 
-  webcam = await tf.data.webcam(webcamElement);
+  webcam = await tf.data.webcam(webcamElement); // ウェブカメラの初期化
 
   return new Promise((resolve) => {
     resolve();
   });
 }
 
+// KNNモデルを読み込む非同期関数
 async function loadKNNModel() {
   const response = await fetch('models/knn-classifier-model.txt');
   const txt = await response.text();
@@ -140,12 +100,68 @@ async function loadKNNModel() {
   });
 }
 
+// 手を検知するためのモデルを初期化する関数
+async function createHandDetector() {
+  const model = handPoseDetection.SupportedModels.MediaPipeHands;
+  const detectorConfig = {
+    runtime: 'mediapipe', // or 'tfjs',
+    solutionPath: 'https://cdn.jsdelivr.net/npm/@mediapipe/hands',
+    modelType: 'full',
+  }
+  detector = await handPoseDetection.createDetector(model, detectorConfig);
+
+  return new Promise((resolve) => {
+    resolve(detector);
+  });
+}
+
+// 画像から手のランドマークを取得する関数
+async function getHandLandmarks(imageElement) {
+  const hands = await detector.estimateHands(imageElement);
+  if (hands.length > 0) {
+    return hands[0].keypoints3D.map(point => [point.x, point.y, point.z]);
+  }
+  return null;
+}
+
+// 手を検知する関数
+async function estimateHands() {
+  const estimationConfig = {flipHorizontal: false};
+
+  results = await detector.estimateHands(webcamElement, estimationConfig);
+}
+
+// 手のポーズを予測する関数
+async function estimatePose() {
+  if (classifier.getNumClasses() > 0) {
+    const img = await webcam.capture();
+    const landmarks = await getHandLandmarks(webcamElement);
+
+    if (landmarks) {
+      const flattened = landmarks.flat();
+      const tensor = tf.tensor(flattened).reshape([1, flattened.length]);
+
+      const result = await classifier.predictClass(tensor);
+      const classes = ['ピース', '指ハート', 'ほっぺハート', 'なし'];
+      const probabilities = result.confidences; // 各クラスの確率を取得
+
+      knnResult = classes[result.label];
+      knnProbability = probabilities[result.label]; // 確率を変数に保存
+
+      tensor.dispose();
+    }
+    img.dispose();
+  }
+
+  await tf.nextFrame();
+}
+
 // Canvasに画像を描画する関数
 function drawCanvas() {
   if (!results || results.length === 0) return;
 
   results.forEach(result => {
-    const { keypoints } = result;
+    const {keypoints, handedness} = result;
 
     // 手のキーポイントを名前から取得
     const wrist = keypoints.find((keypoint) => keypoint.name === 'wrist');
@@ -160,9 +176,17 @@ function drawCanvas() {
     const thumbIndexMidPointX = (thumbTip.x + indexFingerTip.x) / 2;
     const wristMiddleMidPointY = (middleFingerMcp.y + wrist.y) / 2;
 
-    if (knnResult === 'ピース' && knnProbability === 1) {
+    // 「どのポーズであるか」と「そのポーズである確率が1であるか」と「右手か左手か」で、画像と画像の貼る位置を変える
+    if (knnResult === 'ピース' && knnProbability === 1 && handedness === "Right") {
       drawDecoImage({
         image: decoLoadedImage.peace01,
+        x: indexMiddleMidPointX,
+        y: indexFingerTip.y - 30,
+        scale: 3,
+      });
+    } else if (knnResult === 'ピース' && knnProbability === 1 && handedness === "Left") {
+      drawDecoImage({
+        image: decoLoadedImage.peace02,
         x: indexMiddleMidPointX,
         y: indexFingerTip.y - 30,
         scale: 3,
@@ -174,9 +198,16 @@ function drawCanvas() {
         y: indexFingerTip.y - 30,
         scale: 2,
       });
-    } else if (knnResult === 'ほっぺハート' && knnProbability === 1) {
+    } else if (knnResult === 'ほっぺハート' && knnProbability === 1 && handedness === "Right") {
       drawDecoImage({
         image: decoLoadedImage.heart02,
+        x: pinkyFingerMcp.x,
+        y: wristMiddleMidPointY - 50,
+        scale: 2,
+      });
+    } else if (knnResult === 'ほっぺハート' && knnProbability === 1 && handedness === "Left") {
+      drawDecoImage({
+        image: decoLoadedImage.heart01,
         x: pinkyFingerMcp.x - 30,
         y: wristMiddleMidPointY - 50,
         scale: 2,
@@ -195,7 +226,7 @@ function loadDecoImages() {
 }
 
 // 画像を描画する関数
-function drawDecoImage({ image, x, y, scale = 1, xFix = 0, yFix = 0}) {
+function drawDecoImage({image, x, y, scale = 1, xFix = 0, yFix = 0}) {
   const flippedX = canvasElement.width - x;
   const dx = flippedX - image.width / scale / 2; // 画像の中心に合わせるための計算
   const dy = y - image.height / scale / 2; // 画像の中心に合わせるための計算
