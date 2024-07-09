@@ -2,8 +2,7 @@ let detector;
 let results;
 let knnResult;
 let knnProbability; // 確率を保持する変数
-let classifier;
-let net;
+const classifier = knnClassifier.create(); // KNN分類器を作成
 const decoLoadedImage = {}; // 画像を格納するオブジェクト
 const decoImageList = ['peace01', 'peace02', 'heart01', 'heart02', 'heart03']; // 画像のリスト
 
@@ -27,8 +26,9 @@ async function enableCam() {
     webcamElement.srcObject = stream;
 
     return new Promise((resolve) => {
-      webcamElement.onloadedmetadata = () => {
+      webcamElement.onloadedmetadata = async () => {
         webcamElement.play();
+        webcam = await tf.data.webcam(webcamElement);
         resolve();
       };
     });
@@ -66,18 +66,6 @@ function drawWebCamToCanvas() {
   );
 
   ctx.restore(); // 反転を元に戻す
-}
-
-// KNN分類器とMobileNetモデルをセットアップする関数
-async function setupKNN() {
-  classifier = knnClassifier.create(); // KNN分類器を作成
-  net = await mobilenet.load(); // MobileNetモデルをロード
-
-  webcam = await tf.data.webcam(webcamElement); // ウェブカメラの初期化
-
-  return new Promise((resolve) => {
-    resolve();
-  });
 }
 
 // KNNモデルを読み込む非同期関数
@@ -259,7 +247,6 @@ async function initHandPose() {
   loadDecoImages(); // 画像をロード
   await enableCam(); // Webカメラの起動
   await createHandDetector(); // 手検知モデルの初期化
-  await setupKNN(); // KNNモデルのセットアップ
   await loadKNNModel(); // KNNモデルのロード
   initCanvas(); // Canvasの初期化
 

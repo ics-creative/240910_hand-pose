@@ -1,6 +1,8 @@
-const classifier = knnClassifier.create();
 const webcamElement = document.getElementById('webcam');
 const downloadButton = document.getElementById('download');
+let classifier;
+let net;
+let webcam;
 let detector;
 
 // ダウンロードボタンのイベントリスナーを追加する関数
@@ -21,7 +23,6 @@ function downloadModel() {
     ])
   );
   const blob = new Blob([str], {type: 'text/plain'}); // JSON文字列をBlobとして作成
-
   const url = URL.createObjectURL(blob); // BlobからURLを作成
 
   // ダウンロード用のリンクを作成
@@ -34,8 +35,17 @@ function downloadModel() {
   a.click();
 
   document.body.removeChild(a); // リンクをドキュメントから削除
-
   URL.revokeObjectURL(url); // 作成したURLを解放
+}
+
+// KNN分類器とMobileNetモデルをセットアップする関数
+async function setupKNN() {
+  classifier = knnClassifier.create(); // KNN分類器を作成
+  net = await mobilenet.load(); // MobileNetモデルをロード
+
+  return new Promise((resolve) => {
+    resolve();
+  });
 }
 
 // KNNモデルを読み込む非同期関数
@@ -72,6 +82,30 @@ async function createHandDetector() {
   });
 }
 
+// Webカメラを有効にする関数
+async function enableCam() {
+  const constraints = {
+    audio: false,
+    video: {width: 640, height: 480}
+  };
+
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia(constraints);
+    webcamElement.srcObject = stream;
+
+    return new Promise((resolve) => {
+      webcamElement.onloadedmetadata = async () => {
+        webcamElement.play();
+        webcam = await tf.data.webcam(webcamElement); // ウェブカメラの初期化
+        resolve();
+      };
+    });
+  } catch (error) {
+    console.error('Error accessing webcam: ', error);
+    alert('カメラのアクセスに失敗しました。カメラのアクセス権限を確認してください。');
+  }
+}
+
 // 画像から手のランドマークを取得する関数
 async function getHandLandmarks(imageElement) {
   const hands = await detector.estimateHands(imageElement);
@@ -83,10 +117,6 @@ async function getHandLandmarks(imageElement) {
 
 // メインアプリケーションの関数
 async function app() {
-  await createHandDetector(); // モデルの読み込み
-
-  const webcam = await tf.data.webcam(webcamElement); // ウェブカメラの初期化
-
   // 新しい例を追加する関数
   const addExample = async classId => {
     const img = await webcam.capture();
@@ -141,7 +171,10 @@ async function app() {
 
 // 初期化関数
 async function init() {
+  await setupKNN(); // KNNモデルのセットアップ
   await loadKNNModel(); // モデルを読み込む
+  await enableCam(); // ウェブカメラの初期化
+  await createHandDetector(); // モデルの読み込み
   addEventListeners(); // イベントリスナーを設定
   app(); // メインアプリケーションを実行
 }
