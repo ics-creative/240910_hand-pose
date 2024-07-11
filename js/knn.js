@@ -123,7 +123,7 @@ async function getHandLandmarks(imageElement) {
 }
 
 // 新しい例を追加する関数
-async function addExample() {
+async function addExample(classId) {
   const img = await webcam.capture();
   const landmarks = await getHandLandmarks(webcamElement);
 
