@@ -5,7 +5,6 @@
   <meta name='viewport' content='width=device-width, initial-scale=1.0'/>
   <title>Tensorflow.jsでポーズ認識</title>
   <link rel='stylesheet' href='css/reset.css'/>
-  <link rel='stylesheet' href='css/style.css'/>
   <!-- TensorFlow.js -->
   <script src='https://cdn.jsdelivr.net/npm/@tensorflow/tfjs'></script>
   <script src='https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet'></script>
@@ -14,26 +13,57 @@
   <script src='https://cdn.jsdelivr.net/npm/@mediapipe/hands'></script>
   <script
     src='https://cdn.jsdelivr.net/npm/@tensorflow-models/hand-pose-detection/dist/hand-pose-detection.js'></script>
+  <style>
+    body {
+      font-family: "Kiwi Maru", serif;
+    }
+
+    .wrapper {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 50px;
+      height: 100dvh;
+    }
+
+    .pose-list {
+      display: flex;
+      flex-direction: column;
+      gap: 50px;
+    }
+
+    .pose-list > img {
+      width: 50px;
+    }
+  </style>
 </head>
 <body>
-<div id='app'>
-  <video
-    style='
+<div class="wrapper">
+  <div id='app'>
+    <video
+      style='
           visibility: hidden;
           height: 0;
           width: 0;
           position: fixed;
           pointer-events: none;
         '
-    id='webcam'
-    muted
-    autoplay
-    playsinline
-  ></video>
-  <div id='canvasWrapper'>
-    <canvas id='canvas'></canvas>
+      id='webcam'
+      muted
+      autoplay
+      playsinline
+    ></video>
+    <div id='canvasWrapper'>
+      <canvas id='canvas'></canvas>
+    </div>
+  </div>
+  <div class="pose-list">
+    <img src="./images/demo_peace.png" alt="">
+    <img src="./images/demo_finger_heart.png" alt="">
+    <img src="./images/demo_cheek_heart.png" alt="">
   </div>
 </div>
+
 <script type='module' src='js/main.js'></script>
 </body>
 </html>
