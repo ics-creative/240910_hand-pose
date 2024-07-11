@@ -1,15 +1,41 @@
 const webcamElement = document.getElementById('webcam');
 const downloadButton = document.getElementById('download');
+const addClassButton = document.getElementById('add-class');
+const newClassNameInput = document.getElementById('new-class-name');
+const newClassForm = document.getElementById('new-class-form');
 let classifier;
 let net;
 let webcam;
 let detector;
+let customClasses = ['ピース', '指ハート', 'ほっぺハート']; // デフォルトのクラスを定義
 
 // ダウンロードボタンのイベントリスナーを追加する関数
 function addEventListeners() {
   downloadButton.addEventListener('click', () => {
     downloadModel();
   });
+
+  addClassButton.addEventListener('click', () => {
+    const className = newClassNameInput.value.trim();
+    if (className) {
+      addClassButtonToDOM(className);
+      customClasses.push(className);
+      newClassNameInput.value = '';
+      newClassForm.style.display = 'none';
+    }
+  });
+}
+
+// 新しいポーズのボタンをDOMに追加する関数
+function addClassButtonToDOM(className) {
+  const button = document.createElement('button');
+  button.classList.add('button');
+  button.innerText = className;
+  button.addEventListener('click', () => addExample(customClasses.indexOf(className)));
+
+  // downloadボタンの前に新しいボタンを追加
+  const buttonsDiv = document.querySelector('.buttons');
+  buttonsDiv.insertBefore(button, downloadButton);
 }
 
 // KNNモデルをダウンロードする関数
@@ -42,25 +68,6 @@ function downloadModel() {
 async function setupKNN() {
   classifier = knnClassifier.create(); // KNN分類器を作成
   net = await mobilenet.load(); // MobileNetモデルをロード
-
-  return new Promise((resolve) => {
-    resolve();
-  });
-}
-
-// KNNモデルを読み込む非同期関数
-async function loadKNNModel() {
-  const response = await fetch('models/knn-classifier-model.txt');
-  const txt = await response.text();
-
-  classifier.setClassifierDataset(
-    Object.fromEntries(
-      JSON.parse(txt).map(([label, data, shape]) => [
-        label,
-        tf.tensor(data, shape)
-      ])
-    )
-  );
 
   return new Promise((resolve) => {
     resolve();
@@ -115,29 +122,28 @@ async function getHandLandmarks(imageElement) {
   return null;
 }
 
+// 新しい例を追加する関数
+async function addExample() {
+  const img = await webcam.capture();
+  const landmarks = await getHandLandmarks(webcamElement);
+
+  if (landmarks) {
+    const flattened = landmarks.flat();
+    const tensor = tf.tensor(flattened).reshape([1, flattened.length]);
+
+    classifier.addExample(tensor, classId);
+    tensor.dispose();
+  }
+
+  img.dispose();
+};
+
 // メインアプリケーションの関数
 async function app() {
-  // 新しい例を追加する関数
-  const addExample = async classId => {
-    const img = await webcam.capture();
-    const landmarks = await getHandLandmarks(webcamElement);
-
-    if (landmarks) {
-      const flattened = landmarks.flat();
-      const tensor = tf.tensor(flattened).reshape([1, flattened.length]);
-
-      classifier.addExample(tensor, classId);
-      tensor.dispose();
-    }
-
-    img.dispose();
-  };
-
-  // ボタンのイベントリスナーを追加
+  // デフォルトのボタンのイベントリスナーを追加
   document.getElementById('class-a').addEventListener('click', () => addExample(0));
   document.getElementById('class-b').addEventListener('click', () => addExample(1));
   document.getElementById('class-c').addEventListener('click', () => addExample(2));
-  document.getElementById('class-d').addEventListener('click', () => addExample(3));
 
   // 手のポーズを予測
   while (true) {
@@ -154,8 +160,7 @@ async function app() {
         const tensor = tf.tensor(flattened).reshape([1, flattened.length]);
 
         const result = await classifier.predictClass(tensor);
-        const classes = ['ピース', '指ハート', 'ほっぺハート', 'なし'];
-        predictionText = `prediction: ${classes[result.label]}\n\nprobability: ${Math.round(result.confidences[result.label] * 100) / 100}`;
+        predictionText = `prediction: ${customClasses[result.label]}\n\nprobability: ${Math.round(result.confidences[result.label] * 100) / 100}`;
 
         tensor.dispose();
       }
@@ -171,10 +176,13 @@ async function app() {
 
 // 初期化関数
 async function init() {
-  await setupKNN(); // KNNモデルのセットアップ
-  await loadKNNModel(); // モデルを読み込む
-  await enableCam(); // ウェブカメラの初期化
-  await createHandDetector(); // モデルの読み込み
+  // Webカメラの起動、手検知モデルの初期化、KNNモデルのセットアップを並列に実行
+  await Promise.all([
+    enableCam(),           // Webカメラの起動
+    createHandDetector(),  // 手検知モデルの初期化
+    setupKNN()             // KNNモデルのセットアップ
+  ]);
+
   addEventListeners(); // イベントリスナーを設定
   app(); // メインアプリケーションを実行
 }

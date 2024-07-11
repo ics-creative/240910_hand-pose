@@ -1,7 +1,9 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset='UTF-8' />
+  <meta charset='UTF-8'/>
+  <meta name='viewport' content='width=device-width, initial-scale=1.0'/>
+  <title>Tensorflow.jsで転移学習</title>
   <link rel='stylesheet' href='css/reset.css' />
   <link rel='stylesheet' href='css/style.css' />
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -23,7 +25,10 @@
   <button class="button" id="class-a">ピース</button>
   <button class="button" id="class-b">指ハート</button>
   <button class="button" id="class-c">ほっぺハート</button>
-  <button class="button" id="class-d">なし</button>
+  <div class="button" id="new-class-form">
+    <input type="text" id="new-class-name" class="add-input" placeholder="新しいポーズ" />
+    <button id="add-class" class="add-button">追加</button>
+  </div>
   <button class="button download" id="download">download</button>
 </div>
 <script src='js/knn.js'></script>

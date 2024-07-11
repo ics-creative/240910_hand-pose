@@ -31,6 +31,22 @@ body {
   cursor: pointer;
 }
 
+.add-input {
+  width: 100%;
+}
+
+.add-button {
+  width: 100%;
+  margin-top: 10px;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  font-size: 14px;
+  color: #ffffff;
+  border: solid #ffffff 1px;
+  border-radius: 10px;
+  background-color: rgb(51 51 51);
+}
+
 .download {
   margin-top: 30px;
   color: #ffffff;
