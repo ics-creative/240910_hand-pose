@@ -71,12 +71,14 @@ async function loadKNNModel() {
   const response = await fetch('models/knn-classifier-model.txt');
   const txt = await response.text();
 
+  // テキストをJSONとして解析し、各ラベルに対応するデータと形状を取得
+  // 取得したデータをテンソルに変換してKNN分類器に設定
   // https://github.com/tensorflow/tfjs/issues/633
   classifier.setClassifierDataset(
     Object.fromEntries(
       JSON.parse(txt).map(([label, data, shape]) => [
-        label,
-        tf.tensor(data, shape)
+        label, // ラベル（クラス名）
+        tf.tensor(data, shape), // データをテンソルに変換
       ])
     )
   );
@@ -120,18 +122,23 @@ async function estimateHands() {
 // 手のポーズを予測する関数
 async function estimatePose() {
   if (classifier.getNumClasses() > 0) {
-    const img = await webcam.capture();
-    const landmarks = await getHandLandmarks(webcamElement);
+    const img = await webcam.capture(); // ウェブカメラから現在のフレームをキャプチャ
+    const landmarks = await getHandLandmarks(webcamElement); // 手のランドマークを取得
 
     if (landmarks) {
+      // ランドマークをフラット化（1次元配列に変換）
       const flattened = landmarks.flat();
+
+      // フラット化した配列をテンソルに変換し、2次元の形に変形
       const tensor = tf.tensor(flattened).reshape([1, flattened.length]);
 
+      // KNN分類器を使ってポーズを予測
       const result = await classifier.predictClass(tensor);
-      const classes = ['ピース', '指ハート', 'ほっぺハート', 'なし'];
-      const probabilities = result.confidences; // 各クラスの確率を取得
 
-      knnResult = classes[result.label];
+      const classes = ['ピース', '指ハート', 'ほっぺハート', 'なし']; // 各ポーズ名を取得
+      const probabilities = result.confidences; // 各ポーズの確率を取得
+
+      knnResult = classes[result.label]; // 予測結果を変数に保存
       knnProbability = probabilities[result.label]; // 確率を変数に保存
 
       tensor.dispose();
@@ -139,6 +146,7 @@ async function estimatePose() {
     img.dispose();
   }
 
+  // 次のフレームで再度処理を行う
   await tf.nextFrame();
 }
 
@@ -149,7 +157,7 @@ function drawCanvas() {
   results.forEach(result => {
     const {keypoints, handedness} = result;
 
-    // 手のキーポイントを名前から取得
+    // 手のキーポイントを名前（keypoint.name）から取得
     const wrist = keypoints.find((keypoint) => keypoint.name === 'wrist');
     const thumbTip = keypoints.find((keypoint) => keypoint.name === 'thumb_tip');
     const indexFingerTip = keypoints.find((keypoint) => keypoint.name === 'index_finger_tip');

@@ -9,12 +9,14 @@ let webcam;
 let detector;
 let customClasses = ['ピース', '指ハート', 'ほっぺハート']; // デフォルトのクラスを定義
 
-// ダウンロードボタンのイベントリスナーを追加する関数
+// イベントリスナーを追加する関数
 function addEventListeners() {
+  // ダウンロードボタンをクリックすると学習結果がダウンロードされる
   downloadButton.addEventListener('click', () => {
     downloadModel();
   });
 
+  // 「追加」ボタンを押すとユーザーが新規追加したボタンが登録される
   addClassButton.addEventListener('click', () => {
     const className = newClassNameInput.value.trim();
     if (className) {
@@ -26,14 +28,13 @@ function addEventListeners() {
   });
 }
 
-// 新しいポーズのボタンをDOMに追加する関数
+// 新しい項目のボタンをDOMに追加する関数
 function addClassButtonToDOM(className) {
   const button = document.createElement('button');
   button.classList.add('button');
   button.innerText = className;
   button.addEventListener('click', () => addExample(customClasses.indexOf(className)));
 
-  // downloadボタンの前に新しいボタンを追加
   const buttonsDiv = document.querySelector('.buttons');
   buttonsDiv.insertBefore(button, downloadButton);
 }
@@ -122,16 +123,19 @@ async function getHandLandmarks(imageElement) {
   return null;
 }
 
-// 新しい例を追加する関数
+// 新しいポーズの学習を追加する関数
 async function addExample(classId) {
-  const img = await webcam.capture();
-  const landmarks = await getHandLandmarks(webcamElement);
+  const img = await webcam.capture(); // ウェブカメラから現在のフレームをキャプチャ
+  const landmarks = await getHandLandmarks(webcamElement); // 手のランドマークを取得
 
   if (landmarks) {
+    // ランドマークをフラット化（1次元配列に変換）
     const flattened = landmarks.flat();
+
+    // フラット化した配列をテンソルに変換し、2次元の形に変形
     const tensor = tf.tensor(flattened).reshape([1, flattened.length]);
 
-    classifier.addExample(tensor, classId);
+    classifier.addExample(tensor, classId); // KNN分類器に新しいポーズを追加
     tensor.dispose();
   }
 
@@ -148,8 +152,8 @@ async function app() {
   // 手のポーズを予測
   while (true) {
     if (classifier.getNumClasses() > 0) {
-      const img = await webcam.capture();
-      const landmarks = await getHandLandmarks(webcamElement);
+      const img = await webcam.capture(); // ウェブカメラから現在のフレームをキャプチャ
+      const landmarks = await getHandLandmarks(webcamElement); // 手のランドマークを取得
 
       // デフォルトの予測結果は「なし」とする
       let predictionText = 'prediction: なし\n\nprobability: 1';
