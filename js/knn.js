@@ -93,7 +93,7 @@ async function createHandDetector() {
 async function enableCam() {
   const constraints = {
     audio: false,
-    video: {width: 640, height: 480}
+    video: {width: 640, height: 480},
   };
 
   try {

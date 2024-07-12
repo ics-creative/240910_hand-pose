@@ -16,9 +16,7 @@ const ctx = canvasElement.getContext('2d');
 async function enableCam() {
   const constraints = {
     audio: false,
-    video: true,
-    width: 640,
-    height: 480
+    video: {width: 640, height: 480},
   };
 
   try {
@@ -28,7 +26,7 @@ async function enableCam() {
     return new Promise((resolve) => {
       webcamElement.onloadedmetadata = async () => {
         webcamElement.play();
-        webcam = await tf.data.webcam(webcamElement);
+        webcam = await tf.data.webcam(webcamElement); // ウェブカメラの初期化
         resolve();
       };
     });

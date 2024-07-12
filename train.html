@@ -19,17 +19,19 @@
     src='https://cdn.jsdelivr.net/npm/@tensorflow-models/hand-pose-detection/dist/hand-pose-detection.js'></script>
 </head>
 <body>
-<div id="console"></div>
-<video autoplay playsinline muted id="webcam" width="640" height="480" style="transform: scaleX(-1)"></video>
-<div class="buttons">
-  <button class="button" id="class-a">ピース</button>
-  <button class="button" id="class-b">指ハート</button>
-  <button class="button" id="class-c">ほっぺハート</button>
-  <div class="button" id="new-class-form">
-    <input type="text" id="new-class-name" class="add-input" placeholder="新しいポーズ" />
-    <button id="add-class" class="add-button">追加</button>
+<div class="wrapper">
+  <div id="console"></div>
+  <video autoplay playsinline muted id="webcam" width="640" height="480" style="transform: scaleX(-1)"></video>
+  <div class="buttons">
+    <button class="button" id="class-a">ピース</button>
+    <button class="button" id="class-b">指ハート</button>
+    <button class="button" id="class-c">ほっぺハート</button>
+    <div class="button" id="new-class-form">
+      <input type="text" id="new-class-name" class="add-input" placeholder="新しいポーズ" />
+      <button id="add-class" class="add-button">追加</button>
+    </div>
+    <button class="button download" id="download">download</button>
   </div>
-  <button class="button download" id="download">download</button>
 </div>
 <script src='js/knn.js'></script>
 </body>

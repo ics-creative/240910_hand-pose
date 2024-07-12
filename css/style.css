@@ -1,13 +1,36 @@
 body {
+  font-family: "Kiwi Maru", serif;
+}
+
+.wrapper {
   display: flex;
   justify-content: center;
   align-items: center;
+  gap: 20px;
   height: 100dvh;
-  font-family: "Kiwi Maru", serif;
+}
+
+@media (max-width: 900px) {
+  .wrapper {
+    position: relative;
+    height: auto;
+  }
 }
 
 #console {
   width: 230px;
+}
+
+@media (max-width: 900px) {
+  #console {
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    z-index: 10;
+    padding: 10px;
+    font-size: 14px;
+    background-color: rgb(255 255 255 / 0.7);
+  }
 }
 
 .buttons {
@@ -15,8 +38,14 @@ body {
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  gap: 40px;
+  gap: 30px;
   width: 200px;
+}
+
+@media (max-width: 900px) {
+  .buttons {
+    font-size: 14px;
+  }
 }
 
 .button {

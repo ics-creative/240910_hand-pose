@@ -26,6 +26,18 @@
       height: 100dvh;
     }
 
+    @media (max-width: 700px) {
+      .wrapper {
+        display: block;
+      }
+
+      #canvas {
+        width: 100vw;
+        height: 100dvh;
+        object-fit: cover;
+      }
+    }
+
     .pose-list {
       display: flex;
       flex-direction: column;
@@ -34,6 +46,23 @@
 
     .pose-list > img {
       width: 50px;
+    }
+
+    @media (max-width: 700px) {
+      .pose-list {
+        position: absolute;
+        top: 40px;
+        right: 40px;
+        gap: 20px;
+      }
+
+      .pose-list > img {
+        width: 80px;
+        padding: 10px 20px;
+        background-color: rgb(255 255 255 / 0.5);
+        border-radius: 8px;
+        border: 1px solid #333333;
+      }
     }
   </style>
 </head>
@@ -52,6 +81,7 @@
       muted
       autoplay
       playsinline
+      width="640" height="480"
     ></video>
     <div id='canvasWrapper'>
       <canvas id='canvas'></canvas>
