@@ -4,7 +4,6 @@ const addClassButton = document.getElementById('add-class');
 const newClassNameInput = document.getElementById('new-class-name');
 const newClassForm = document.getElementById('new-class-form');
 let classifier;
-let net;
 let webcam;
 let detector;
 let customClasses = ['ピース', '指ハート', 'ほっぺハート']; // デフォルトのクラスを定義
@@ -65,10 +64,9 @@ function downloadModel() {
   URL.revokeObjectURL(url); // 作成したURLを解放
 }
 
-// KNN分類器とMobileNetモデルをセットアップする関数
+// KNN分類器をセットアップする関数
 async function setupKNN() {
   classifier = knnClassifier.create(); // KNN分類器を作成
-  net = await mobilenet.load(); // MobileNetモデルをロード
 
   return new Promise((resolve) => {
     resolve();
@@ -114,8 +112,8 @@ async function enableCam() {
   }
 }
 
-// 画像から手のランドマークを取得する関数
-async function getHandLandmarks(imageElement) {
+// ウェブカメラの映像から手のキーポイントを取得する関数
+async function getHandKeypoints(imageElement) {
   const hands = await detector.estimateHands(imageElement);
   if (hands.length > 0) {
     return hands[0].keypoints3D.map(point => [point.x, point.y, point.z]);
@@ -126,10 +124,10 @@ async function getHandLandmarks(imageElement) {
 // 新しいポーズの学習を追加する関数
 async function addExample(classId) {
   const img = await webcam.capture(); // ウェブカメラから現在のフレームをキャプチャ
-  const landmarks = await getHandLandmarks(webcamElement); // 手のランドマークを取得
+  const landmarks = await getHandKeypoints(webcamElement); // 手のキーポイントを取得
 
   if (landmarks) {
-    // ランドマークをフラット化（1次元配列に変換）
+    // キーポイントをフラット化（1次元配列に変換）
     const flattened = landmarks.flat();
 
     // フラット化した配列をテンソルに変換し、2次元の形に変形
@@ -140,7 +138,7 @@ async function addExample(classId) {
   }
 
   img.dispose();
-};
+}
 
 // メインアプリケーションの関数
 async function app() {
@@ -153,14 +151,17 @@ async function app() {
   while (true) {
     if (classifier.getNumClasses() > 0) {
       const img = await webcam.capture(); // ウェブカメラから現在のフレームをキャプチャ
-      const landmarks = await getHandLandmarks(webcamElement); // 手のランドマークを取得
+      const landmarks = await getHandKeypoints(webcamElement); // 手のキーポイントを取得
 
       // デフォルトの予測結果は「なし」とする
       let predictionText = 'prediction: なし\n\nprobability: 1';
 
-      // 手のランドマークが検出された場合のみ予測を更新
+      // 手のキーポイントが検出された場合のみ予測を更新
       if (landmarks) {
+        // キーポイントをフラット化（1次元配列に変換）
         const flattened = landmarks.flat();
+
+        // フラット化した配列をテンソルに変換し、2次元の形に変形
         const tensor = tf.tensor(flattened).reshape([1, flattened.length]);
 
         const result = await classifier.predictClass(tensor);
@@ -182,9 +183,9 @@ async function app() {
 async function init() {
   // Webカメラの起動、手検知モデルの初期化、KNNモデルのセットアップを並列に実行
   await Promise.all([
-    enableCam(),           // Webカメラの起動
-    createHandDetector(),  // 手検知モデルの初期化
-    setupKNN()             // KNNモデルのセットアップ
+    enableCam(), // Webカメラの起動
+    createHandDetector(), // 手検知モデルの初期化
+    setupKNN() // KNNモデルのセットアップ
   ]);
 
   addEventListeners(); // イベントリスナーを設定

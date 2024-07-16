@@ -2,16 +2,15 @@
 <html lang="ja">
 <head>
   <meta charset='UTF-8'/>
-  <meta name='viewport' content='width=device-width, initial-scale=1.0'/>
+  <meta content='width=device-width, initial-scale=1.0' name='viewport'/>
   <title>Tensorflow.jsで転移学習</title>
-  <link rel='stylesheet' href='css/reset.css' />
-  <link rel='stylesheet' href='css/style.css' />
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href='css/reset.css' rel='stylesheet'/>
+  <link href='css/style.css' rel='stylesheet'/>
+  <link href="https://fonts.googleapis.com" rel="preconnect">
+  <link crossorigin href="https://fonts.gstatic.com" rel="preconnect">
   <link href="https://fonts.googleapis.com/css2?family=Kiwi+Maru&display=swap" rel="stylesheet">
   <!-- TensorFlow.js -->
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/knn-classifier"></script>
   <script src='https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-converter/dist/tf-converter.js'></script>
   <script src='https://cdn.jsdelivr.net/npm/@mediapipe/hands'></script>
@@ -21,14 +20,14 @@
 <body>
 <div class="wrapper">
   <div id="console"></div>
-  <video autoplay playsinline muted id="webcam" width="640" height="480" style="transform: scaleX(-1)"></video>
+  <video autoplay height="480" id="webcam" muted playsinline style="transform: scaleX(-1)" width="640"></video>
   <div class="buttons">
     <button class="button" id="class-a">ピース</button>
     <button class="button" id="class-b">指ハート</button>
     <button class="button" id="class-c">ほっぺハート</button>
     <div class="button" id="new-class-form">
-      <input type="text" id="new-class-name" class="add-input" placeholder="新しいポーズ" />
-      <button id="add-class" class="add-button">追加</button>
+      <input class="add-input" id="new-class-name" placeholder="新しいポーズ" type="text"/>
+      <button class="add-button" id="add-class">追加</button>
     </div>
     <button class="button download" id="download">download</button>
   </div>

@@ -103,8 +103,8 @@ async function createHandDetector() {
   });
 }
 
-// 画像から手のランドマークを取得する関数
-async function getHandLandmarks(imageElement) {
+// 画像から手のキーポイントを取得する関数
+async function getHandKeypoints(imageElement) {
   const hands = await detector.estimateHands(imageElement);
   if (hands.length > 0) {
     return hands[0].keypoints3D.map(point => [point.x, point.y, point.z]);
@@ -123,11 +123,11 @@ async function estimateHands() {
 async function estimatePose() {
   if (classifier.getNumClasses() > 0) {
     const img = await webcam.capture(); // ウェブカメラから現在のフレームをキャプチャ
-    const landmarks = await getHandLandmarks(webcamElement); // 手のランドマークを取得
+    const keypoints = await getHandKeypoints(webcamElement); // 手のキーポイントを取得
 
-    if (landmarks) {
-      // ランドマークをフラット化（1次元配列に変換）
-      const flattened = landmarks.flat();
+    if (keypoints) {
+      // キーポイントをフラット化（1次元配列に変換）
+      const flattened = keypoints.flat();
 
       // フラット化した配列をテンソルに変換し、2次元の形に変形
       const tensor = tf.tensor(flattened).reshape([1, flattened.length]);
