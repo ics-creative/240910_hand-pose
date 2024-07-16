@@ -10,6 +10,11 @@ body {
   height: 100dvh;
 }
 
+.add-input {
+  padding: 10px;
+  outline: auto;
+}
+
 @media (max-width: 900px) {
   .wrapper {
     position: relative;
