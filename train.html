@@ -1,37 +1,71 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ja">
 <head>
-  <meta charset='UTF-8'/>
-  <meta content='width=device-width, initial-scale=1.0' name='viewport'/>
+  <meta charset="UTF-8" />
+  <meta content="width=device-width, initial-scale=1.0" name="viewport" />
   <title>Tensorflow.jsで学習</title>
-  <link href='css/reset.css' rel='stylesheet'/>
-  <link href='css/style.css' rel='stylesheet'/>
-  <link href="https://fonts.googleapis.com" rel="preconnect">
-  <link crossorigin href="https://fonts.gstatic.com" rel="preconnect">
-  <link href="https://fonts.googleapis.com/css2?family=Kiwi+Maru&display=swap" rel="stylesheet">
+  <link href="css/reset.css" rel="stylesheet" />
+  <link href="css/style.css" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com" />
+  <link crossorigin href="https://fonts.gstatic.com" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Kiwi+Maru&display=swap"
+    rel="stylesheet"
+  />
   <!-- TensorFlow.js -->
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/knn-classifier"></script>
-  <script src='https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-converter/dist/tf-converter.js'></script>
-  <script src='https://cdn.jsdelivr.net/npm/@mediapipe/hands'></script>
-  <script
-    src='https://cdn.jsdelivr.net/npm/@tensorflow-models/hand-pose-detection/dist/hand-pose-detection.js'></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-converter/dist/tf-converter.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/hand-pose-detection/dist/hand-pose-detection.js"></script>
 </head>
 <body>
 <div class="wrapper">
-  <div id="console"></div>
-  <video autoplay height="480" id="webcam" muted playsinline style="transform: scaleX(-1)" width="640"></video>
-  <div class="buttons">
-    <button class="button" id="class-a">ピース</button>
-    <button class="button" id="class-b">指ハート</button>
-    <button class="button" id="class-c">ほっぺハート</button>
-    <div class="button" id="new-class-form">
-      <input class="add-input" id="new-class-name" placeholder="新しいポーズ" type="text"/>
-      <button class="add-button" id="add-class">追加</button>
+  <div class="top-section">
+    <div class="video-wrapper">
+      <div id="console">prediction: なし<br />probability: 1</div>
+      <video
+        width="640"
+        height="480"
+        id="webcam"
+        style="transform: scaleX(-1)"
+        autoplay
+        muted
+        playsinline
+      ></video>
     </div>
-    <button class="button download" id="download">download</button>
+    <div class="buttons">
+      <button class="button" id="class-a">ピース</button>
+      <button class="button" id="class-b">指ハート</button>
+      <button class="button" id="class-c">ほっぺハート</button>
+      <div class="button" id="new-pose-form">
+        <input id="new-pose-name" placeholder="新しいポーズ" type="text" />
+        <button id="add-button">追加</button>
+      </div>
+      <button class="button" id="download-button">download</button>
+    </div>
+  </div>
+  <div class="bottom-section">
+    <div class="pose-detection">
+      <p class="pose-detection-title">＜ポーズを学習させる＞</p>
+      <ul class="pose-detection-list">
+        <li>
+          ① ピースして［ピース］のボタンを数回押す<br />（predictionに「ピース」probabilityに「1」が表示されるまで）
+        </li>
+        <li>② 指ハートを作って［指ハート］ボタンを数回押す</li>
+        <li>③ ほかのボタンも同様</li>
+      </ul>
+    </div>
+    <div class="pose-detection">
+      <p class="pose-detection-title">＜新しいポーズを追加する場合＞</p>
+      <ul class="pose-detection-list">
+        <li>①［新しいポーズ］の枠に任意のポーズ名を入力する</li>
+        <li>②［追加］ボタンを押す</li>
+        <li>③ 任意のポーズをとり、①②で追加したボタンを数回押す</li>
+      </ul>
+    </div>
   </div>
 </div>
-<script src='js/knn.js'></script>
+<script src="js/knn.js"></script>
 </body>
 </html>

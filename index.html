@@ -1,28 +1,31 @@
-<!DOCTYPE html>
-<html lang='ja'>
+<!doctype html>
+<html lang="ja">
 <head>
-  <meta charset='UTF-8'/>
-  <meta content='width=device-width, initial-scale=1.0' name='viewport'/>
+  <meta charset="UTF-8" />
+  <meta content="width=device-width, initial-scale=1.0" name="viewport" />
   <title>Tensorflow.jsでポーズ認識</title>
-  <link href='css/reset.css' rel='stylesheet'/>
+  <link href="css/reset.css" rel="stylesheet" />
   <!-- TensorFlow.js -->
-  <script src='https://cdn.jsdelivr.net/npm/@tensorflow/tfjs'></script>
-  <script src='https://cdn.jsdelivr.net/npm/@tensorflow-models/knn-classifier'></script>
-  <script src='https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-converter/dist/tf-converter.js'></script>
-  <script src='https://cdn.jsdelivr.net/npm/@mediapipe/hands'></script>
-  <script
-    src='https://cdn.jsdelivr.net/npm/@tensorflow-models/hand-pose-detection/dist/hand-pose-detection.js'></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/knn-classifier"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-converter/dist/tf-converter.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/hand-pose-detection/dist/hand-pose-detection.js"></script>
   <style>
-    body {
-      font-family: "Kiwi Maru", serif;
-    }
-
     .wrapper {
       display: flex;
       justify-content: center;
       align-items: center;
       gap: 50px;
       height: 100dvh;
+    }
+
+    #webcam {
+      visibility: hidden;
+      height: 0;
+      width: 0;
+      position: fixed;
+      pointer-events: none;
     }
 
     @media (max-width: 700px) {
@@ -67,32 +70,26 @@
 </head>
 <body>
 <div class="wrapper">
-  <div id='app'>
+  <div id="app">
     <video
-      autoplay
+      width="640"
       height="480"
-      id='webcam'
+      id="webcam"
+      autoplay
       muted
       playsinline
-      style='
-          visibility: hidden;
-          height: 0;
-          width: 0;
-          position: fixed;
-          pointer-events: none;
-        ' width="640"
     ></video>
-    <div id='canvasWrapper'>
-      <canvas id='canvas'></canvas>
+    <div id="canvas-wrapper">
+      <canvas id="canvas"></canvas>
     </div>
   </div>
   <div class="pose-list">
-    <img alt="" src="./images/demo_peace.png">
-    <img alt="" src="./images/demo_finger_heart.png">
-    <img alt="" src="./images/demo_cheek_heart.png">
+    <img alt="" src="./images/demo_peace.png" />
+    <img alt="" src="./images/demo_finger_heart.png" />
+    <img alt="" src="./images/demo_cheek_heart.png" />
   </div>
 </div>
 
-<script src='js/main.js' type='module'></script>
+<script src="js/main.js"></script>
 </body>
 </html>

@@ -1,60 +1,74 @@
-const webcamElement = document.getElementById('webcam');
-const downloadButton = document.getElementById('download');
-const addClassButton = document.getElementById('add-class');
-const newClassNameInput = document.getElementById('new-class-name');
-const newClassForm = document.getElementById('new-class-form');
-let classifier;
-let webcam;
-let detector;
-let customClasses = ['ピース', '指ハート', 'ほっぺハート']; // デフォルトのクラスを定義
+const newClassForm = document.getElementById("new-pose-form");
+const webcamElement = document.getElementById("webcam");
+const customClasses = ["ピース", "指ハート", "ほっぺハート"]; // デフォルトのクラスを定義
 
 // イベントリスナーを追加する関数
-function addEventListeners() {
+function addEventListeners(detector, classifier) {
+  // デフォルトのボタンのイベントリスナーを追加
+  document
+    .getElementById("class-a")
+    .addEventListener("click", () => addExample(classifier, 0, detector));
+  document
+    .getElementById("class-b")
+    .addEventListener("click", () => addExample(classifier, 1, detector));
+  document
+    .getElementById("class-c")
+    .addEventListener("click", () => addExample(classifier, 2, detector));
+
+  // ダウンロードボタン
+  const downloadButton = document.getElementById("download-button");
+
+  // 新しいポーズを追加するためのボタン
+  const addPoseButton = document.getElementById("add-button");
+  const newPoseNameInput = document.getElementById("new-pose-name");
+
   // ダウンロードボタンをクリックすると学習結果がダウンロードされる
-  downloadButton.addEventListener('click', () => {
+  downloadButton.addEventListener("click", () => {
     downloadModel();
   });
 
-  // 「追加」ボタンを押すとユーザーが新規追加したボタンが登録される
-  addClassButton.addEventListener('click', () => {
-    const className = newClassNameInput.value.trim();
+  // ［追加］ボタンを押すとユーザーが新規追加したボタンが登録される
+  addPoseButton.addEventListener("click", () => {
+    const className = newPoseNameInput.value.trim();
     if (className) {
       addClassButtonToDOM(className);
       customClasses.push(className);
-      newClassNameInput.value = '';
-      newClassForm.style.display = 'none';
+      newPoseNameInput.value = "";
+      newClassForm.style.display = "none";
     }
   });
 }
 
 // 新しい項目のボタンをDOMに追加する関数
-function addClassButtonToDOM(className) {
-  const button = document.createElement('button');
-  button.classList.add('button');
+function addClassButtonToDOM(className, downloadButton) {
+  const button = document.createElement("button");
+  button.classList.add("button");
   button.innerText = className;
-  button.addEventListener('click', () => addExample(customClasses.indexOf(className)));
+  button.addEventListener("click", () =>
+    addExample(customClasses.indexOf(className)),
+  );
 
-  const buttonsDiv = document.querySelector('.buttons');
+  const buttonsDiv = document.querySelector(".buttons");
   buttonsDiv.insertBefore(button, downloadButton);
 }
 
 // KNNモデルをダウンロードする関数
-function downloadModel() {
+function downloadModel(classifier) {
   // モデルのデータセットを取得し、JSON文字列に変換
   const str = JSON.stringify(
     Object.entries(classifier.getClassifierDataset()).map(([label, data]) => [
       label,
       Array.from(data.dataSync()),
       data.shape,
-    ])
+    ]),
   );
-  const blob = new Blob([str], {type: 'text/plain'}); // JSON文字列をBlobとして作成
+  const blob = new Blob([str], { type: "text/plain" }); // JSON文字列をBlobとして作成
   const url = URL.createObjectURL(blob); // BlobからURLを作成
 
   // ダウンロード用のリンクを作成
-  const a = document.createElement('a');
+  const a = document.createElement("a");
   a.href = url;
-  a.download = 'knn-classifier-model.txt';
+  a.download = "knn-classifier-model.txt";
 
   // リンクをドキュメントに追加してクリックイベントを発火
   document.body.appendChild(a);
@@ -66,65 +80,62 @@ function downloadModel() {
 
 // KNN分類器をセットアップする関数
 async function setupKNN() {
-  classifier = knnClassifier.create(); // KNN分類器を作成
-
-  return new Promise((resolve) => {
-    resolve();
-  });
+  const classifier = knnClassifier.create(); // KNN分類器を作成
+  return classifier;
 }
 
 // 手を検知するためのモデルを初期化する関数
 async function createHandDetector() {
   const model = handPoseDetection.SupportedModels.MediaPipeHands;
   const detectorConfig = {
-    runtime: 'mediapipe', // or 'tfjs',
-    solutionPath: 'https://cdn.jsdelivr.net/npm/@mediapipe/hands',
-    modelType: 'full',
-  }
+    runtime: "mediapipe", // or 'tfjs',
+    solutionPath: "https://cdn.jsdelivr.net/npm/@mediapipe/hands",
+    modelType: "full",
+  };
   detector = await handPoseDetection.createDetector(model, detectorConfig);
 
-  return new Promise((resolve) => {
-    resolve(detector);
-  });
+  return detector;
 }
 
 // Webカメラを有効にする関数
 async function enableCam() {
   const constraints = {
     audio: false,
-    video: {width: 640, height: 480},
+    video: { width: 640, height: 480 },
   };
 
   try {
     const stream = await navigator.mediaDevices.getUserMedia(constraints);
     webcamElement.srcObject = stream;
 
-    return new Promise((resolve) => {
-      webcamElement.onloadedmetadata = async () => {
+    await new Promise((resolve) => {
+      webcamElement.onloadedmetadata = () => {
         webcamElement.play();
-        webcam = await tf.data.webcam(webcamElement); // ウェブカメラの初期化
         resolve();
       };
     });
+
+    return await tf.data.webcam(webcamElement);
   } catch (error) {
-    console.error('Error accessing webcam: ', error);
-    alert('カメラのアクセスに失敗しました。カメラのアクセス権限を確認してください。');
+    console.error("Error accessing webcam: ", error);
+    alert(
+      "カメラのアクセスに失敗しました。カメラのアクセス権限を確認してください。",
+    );
   }
 }
 
 // ウェブカメラの映像から手のキーポイントを取得する関数
-async function getHandKeypoints(imageElement) {
-  const hands = await detector.estimateHands(imageElement);
+async function getHandKeypoints(detector) {
+  const hands = await detector.estimateHands(webcamElement);
   if (hands.length > 0) {
-    return hands[0].keypoints3D.map(point => [point.x, point.y, point.z]);
+    return hands[0].keypoints3D.map((point) => [point.x, point.y, point.z]);
   }
   return null;
 }
 
 // 新しいポーズの学習を追加する関数
-async function addExample(classId) {
-  const img = await webcam.capture(); // ウェブカメラから現在のフレームをキャプチャ
-  const landmarks = await getHandKeypoints(webcamElement); // 手のキーポイントを取得
+async function addExample(classifier, classId, detector) {
+  const landmarks = await getHandKeypoints(detector); // 手のキーポイントを取得
 
   if (landmarks) {
     // キーポイントをフラット化（1次元配列に変換）
@@ -136,25 +147,17 @@ async function addExample(classId) {
     classifier.addExample(tensor, classId); // KNN分類器に新しいポーズを追加
     tensor.dispose();
   }
-
-  img.dispose();
 }
 
-// メインアプリケーションの関数
-async function app() {
-  // デフォルトのボタンのイベントリスナーを追加
-  document.getElementById('class-a').addEventListener('click', () => addExample(0));
-  document.getElementById('class-b').addEventListener('click', () => addExample(1));
-  document.getElementById('class-c').addEventListener('click', () => addExample(2));
-
+// 手のポーズを予測する関数
+async function estimatePose(classifier, detector) {
   // 手のポーズを予測
   while (true) {
     if (classifier.getNumClasses() > 0) {
-      const img = await webcam.capture(); // ウェブカメラから現在のフレームをキャプチャ
-      const landmarks = await getHandKeypoints(webcamElement); // 手のキーポイントを取得
+      const landmarks = await getHandKeypoints(detector, webcamElement); // 手のキーポイントを取得
 
       // デフォルトの予測結果は「なし」とする
-      let predictionText = 'prediction: なし\n\nprobability: 1';
+      let predictionText = "prediction: なし\nprobability: 1";
 
       // 手のキーポイントが検出された場合のみ予測を更新
       if (landmarks) {
@@ -165,14 +168,13 @@ async function app() {
         const tensor = tf.tensor(flattened).reshape([1, flattened.length]);
 
         const result = await classifier.predictClass(tensor);
-        predictionText = `prediction: ${customClasses[result.label]}\n\nprobability: ${Math.round(result.confidences[result.label] * 100) / 100}`;
+        predictionText = `prediction: ${customClasses[result.label]}\nprobability: ${Math.round(result.confidences[result.label] * 100) / 100}`;
 
         tensor.dispose();
       }
 
       // 予測結果を表示
-      document.getElementById('console').innerText = predictionText;
-      img.dispose();
+      document.getElementById("console").innerText = predictionText;
     }
 
     await tf.nextFrame();
@@ -181,15 +183,12 @@ async function app() {
 
 // 初期化関数
 async function init() {
-  // Webカメラの起動、手検知モデルの初期化、KNNモデルのセットアップを並列に実行
-  await Promise.all([
-    enableCam(), // Webカメラの起動
-    createHandDetector(), // 手検知モデルの初期化
-    setupKNN() // KNNモデルのセットアップ
-  ]);
+  await enableCam();
+  const detector = await createHandDetector();
+  const classifier = await setupKNN();
 
-  addEventListeners(); // イベントリスナーを設定
-  app(); // メインアプリケーションを実行
+  addEventListeners(detector, classifier);
+  estimatePose(classifier, detector);
 }
 
 // 初期化関数を呼び出す
