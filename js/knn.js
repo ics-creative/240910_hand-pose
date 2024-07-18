@@ -33,13 +33,13 @@ async function enableCam() {
 function addEventListeners(classifier, detector) {
   // デフォルトのボタンのイベントリスナーを追加
   document
-    .getElementById("class-1")
+    .getElementById("class-0")
     .addEventListener("click", () => addExample(classifier, 0, detector));
   document
-    .getElementById("class-2")
+    .getElementById("class-1")
     .addEventListener("click", () => addExample(classifier, 1, detector));
   document
-    .getElementById("class-3")
+    .getElementById("class-2")
     .addEventListener("click", () => addExample(classifier, 2, detector));
 
   // 新しいポーズを追加するためのフォーム
