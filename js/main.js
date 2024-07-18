@@ -65,7 +65,7 @@ function drawWebCamToCanvas() {
 async function loadKNNModel() {
   const response = await fetch("models/knn-classifier-model.txt");
   const txt = await response.text();
-  const classifier = knnClassifier.create(); // KNN分類器を作成
+  const classifier = knnClassifier.create(); // TensorFlow.jsのKNN分類器を作成
 
   // テキストをJSONとして解析し、各ラベルに対応するデータと形状を取得
   // 取得したデータをテンソルに変換してKNN分類器に設定
@@ -84,11 +84,11 @@ async function loadKNNModel() {
 
 // 手を検出するためのモデルを初期化する関数
 async function createHandDetector() {
-  const model = handPoseDetection.SupportedModels.MediaPipeHands;
+  const model = handPoseDetection.SupportedModels.MediaPipeHands; // MediaPipeHandsモデルを使用
   const detectorConfig = {
-    runtime: "mediapipe", // or 'tfjs',
-    solutionPath: "https://cdn.jsdelivr.net/npm/@mediapipe/hands",
-    modelType: "full",
+    runtime: "mediapipe", // or "tfjs", ランタイムの選択
+    solutionPath: "https://cdn.jsdelivr.net/npm/@mediapipe/hands", // MediaPipeHandsのソリューションパス
+    modelType: "full", // モデルタイプを設定
   };
   // 手の検出器を作成
   const detector = await handPoseDetection.createDetector(

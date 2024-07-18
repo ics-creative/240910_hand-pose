@@ -10,17 +10,17 @@ async function enableCam() {
   };
 
   try {
-    const stream = await navigator.mediaDevices.getUserMedia(constraints);
-    webcamElement.srcObject = stream;
+    const stream = await navigator.mediaDevices.getUserMedia(constraints); // ウェブカメラのストリームを取得
+    webcamElement.srcObject = stream; // ストリームをvideo要素に設定
 
     await new Promise((resolve) => {
       webcamElement.onloadedmetadata = () => {
-        webcamElement.play();
+        webcamElement.play(); // ストリームの再生を開始
         resolve();
       };
     });
 
-    return await tf.data.webcam(webcamElement);
+    return await tf.data.webcam(webcamElement); // TensorFlow.jsのウェブカメラデータソースを返す
   } catch (error) {
     console.error("Error accessing webcam: ", error);
     alert(
@@ -69,31 +69,33 @@ function addEventListeners(classifier, detector) {
 // 新しい項目のボタンをDOMに追加する関数
 function addClassButtonToDOM(newPoseName, classId, detector, classifier) {
   const button = document.createElement("button");
-  button.classList.add("button");
+  button.classList.add("button"); // ボタンにクラスを追加
   button.id = `class-${classId}`; // 新しいIDを設定
-  button.innerText = newPoseName;
+  button.innerText = newPoseName; // ボタンのテキストとして新しいポーズ名を設定
 
+  // ボタンがクリックされたときに、新しいポーズをKNN分類器に追加するイベントリスナーを設定
   button.addEventListener("click", () =>
     addExample(classifier, classId, detector),
   );
 
+  // ボタンを既存のボタンリストに追加
   const buttonsDiv = document.querySelector(".buttons");
-  buttonsDiv.insertBefore(button, downloadButton);
+  buttonsDiv.insertBefore(button, downloadButton); // ［download］ボタンの直前に新しいボタンを挿入
 }
 
 // KNN分類器を準備する関数
 async function setupKNN() {
-  const classifier = knnClassifier.create(); // KNN分類器を作成
+  const classifier = knnClassifier.create(); // TensorFlow.jsのKNN分類器を作成
   return classifier;
 }
 
 // 手を検出するためのモデルを初期化する関数
 async function createHandDetector() {
-  const model = handPoseDetection.SupportedModels.MediaPipeHands;
+  const model = handPoseDetection.SupportedModels.MediaPipeHands; // MediaPipeHandsモデルを使用
   const detectorConfig = {
-    runtime: "mediapipe", // or 'tfjs',
-    solutionPath: "https://cdn.jsdelivr.net/npm/@mediapipe/hands",
-    modelType: "full",
+    runtime: "mediapipe", // or "tfjs", ランタイムの選択
+    solutionPath: "https://cdn.jsdelivr.net/npm/@mediapipe/hands", // MediaPipeHandsのソリューションパス
+    modelType: "full", // モデルタイプを設定
   };
   // 手の検出器を作成
   const detector = await handPoseDetection.createDetector(
@@ -136,6 +138,7 @@ async function estimatePose(classifier, results) {
       // フラット化した配列をテンソルに変換し、2次元の形に変形
       const tensor = tf.tensor(flattened).reshape([1, flattened.length]);
 
+      // KNN分類器を使ってポーズを予測
       const result = await classifier.predictClass(tensor);
 
       predictionText = `prediction: ${poseList[result.label]}\nprobability: ${Math.round(result.confidences[result.label] * 100) / 100}`;
