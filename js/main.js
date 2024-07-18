@@ -5,7 +5,7 @@ const canvasElement = document.getElementById("canvas");
 const canvasWrapperElement = document.getElementById("canvas-wrapper");
 const ctx = canvasElement.getContext("2d");
 
-// Webカメラを有効にする関数
+// ウェブカメラを有効にする関数
 async function enableCam() {
   const constraints = {
     audio: false,
@@ -34,10 +34,9 @@ async function enableCam() {
 
 // Canvasの初期化関数
 function initCanvas() {
-  //canvasの大きさをwebcamに合わせる
+  // Canvasの大きさをvideo要素に合わせる
   canvasElement.width = webcamElement.videoWidth;
   canvasElement.height = webcamElement.videoHeight;
-
   canvasWrapperElement.style.width = `${webcamElement.videoWidth}px`;
   canvasWrapperElement.style.height = `${webcamElement.videoHeight}px`;
 }
@@ -83,7 +82,7 @@ async function loadKNNModel() {
   return classifier;
 }
 
-// 手を検知するためのモデルを初期化する関数
+// 手を検出するためのモデルを初期化する関数
 async function createHandDetector() {
   const model = handPoseDetection.SupportedModels.MediaPipeHands;
   const detectorConfig = {
@@ -91,6 +90,7 @@ async function createHandDetector() {
     solutionPath: "https://cdn.jsdelivr.net/npm/@mediapipe/hands",
     modelType: "full",
   };
+  // 手の検出器を作成
   const detector = await handPoseDetection.createDetector(
     model,
     detectorConfig,
@@ -99,28 +99,26 @@ async function createHandDetector() {
   return detector;
 }
 
-// 画像から手のキーポイントを取得する関数
-async function getHandKeypoints(imageElement, detector) {
-  const hands = await detector.estimateHands(imageElement);
-  if (hands.length > 0) {
-    return hands[0].keypoints3D.map((point) => [point.x, point.y, point.z]);
+// ウェブカメラの映像から手を検出する関数
+async function estimateHands(detector) {
+  const results = await detector.estimateHands(webcamElement, {
+    flipHorizontal: false,
+  });
+  return results;
+}
+
+// 手のキーポイント（x, y, z）座標を取得する関数
+async function getHandKeypoints(results) {
+  if (results.length > 0) {
+    return results[0].keypoints3D.map((point) => [point.x, point.y, point.z]);
   }
   return null;
 }
 
-// 手を検知する関数
-async function estimateHands(detector) {
-  const estimationConfig = { flipHorizontal: false };
-
-  const results = await detector.estimateHands(webcamElement, estimationConfig);
-
-  return results;
-}
-
 // 手のポーズを予測する関数
-async function estimatePose(classifier, detector) {
+async function estimatePose(classifier, results) {
   if (classifier.getNumClasses() > 0) {
-    const keypoints = await getHandKeypoints(webcamElement, detector); // 手のキーポイントを取得
+    const keypoints = await getHandKeypoints(results); // 手のキーポイントを取得
 
     if (keypoints) {
       // キーポイントをフラット化（1次元配列に変換）
@@ -236,7 +234,7 @@ function drawCanvas(results, knnResult, knnProbability) {
   });
 }
 
-// 画像をロードする関数
+// 画像を読み込む関数
 function loadDecoImages() {
   decoImageList.forEach((name) => {
     const img = new Image();
@@ -269,11 +267,10 @@ function drawDecoImage({ image, x, y, scale = 1, xFix = 0, yFix = 0 }) {
 
 // 毎フレーム走らせる処理
 async function render(detector, classifier) {
-  const { knnResult, knnProbability } = await estimatePose(
-    classifier,
-    detector,
-  ); // ポーズを検知する
-  const results = await estimateHands(detector); // 手を検知する
+  // 手を検出する
+  const results = await estimateHands(detector);
+  // 手のポーズを予測する
+  const { knnResult, knnProbability } = await estimatePose(classifier, results);
   drawWebCamToCanvas(); // canvasにvideoを描画する
   drawCanvas(results, knnResult, knnProbability); // canvasにやりたいことを描画する
 
@@ -281,15 +278,15 @@ async function render(detector, classifier) {
 }
 
 // 初期化関数
-async function initHandPose() {
-  loadDecoImages(); // 画像をロード
-  await enableCam(); // Webカメラの起動
-  const detector = await createHandDetector(); // 手検知モデルの初期化
-  const classifier = await loadKNNModel(); // KNNモデルのロード
+async function init() {
+  loadDecoImages(); // 画像を読み込む
+  await enableCam(); // ウェブカメラの起動
+  const detector = await createHandDetector(); // 手検出モデルの初期化
+  const classifier = await loadKNNModel(); // KNNモデルを読み込む
 
   initCanvas(); // Canvasの初期化
   render(detector, classifier); // 毎フレーム走らせる処理
 }
 
 // 初期化関数を呼び出す
-initHandPose();
+init();

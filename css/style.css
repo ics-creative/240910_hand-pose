@@ -76,12 +76,6 @@ body {
   }
 }
 
-#new-pose-name {
-  width: 100%;
-  padding: 10px;
-  outline: auto;
-}
-
 .button {
   width: 140px;
   padding: 10px;
@@ -92,9 +86,39 @@ body {
   background-color: #ffffff;
   box-shadow: 2px 2px 0 rgb(51 51 51);
   cursor: pointer;
+  transition: 0.2s;
 }
 
-#add-button {
+.button:hover {
+  border: solid #fd00d9 2px;
+  box-shadow: 2px 2px 0 #fd00d9;
+}
+
+#new-pose-form {
+  width: 140px;
+  padding: 10px;
+  color: #333333;
+  text-align: center;
+  border: solid #333333 2px;
+  border-radius: 10px;
+  background-color: #ffffff;
+  box-shadow: 2px 2px 0 rgb(51 51 51);
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+#new-pose-form:hover {
+  border: solid #333333 2px;
+  box-shadow: 2px 2px 0 rgb(51 51 51);
+}
+
+#new-pose-name {
+  width: 100%;
+  padding: 10px;
+  outline: auto;
+}
+
+#add-new-pose-button {
   width: 100%;
   margin-top: 10px;
   padding-top: 8px;
