@@ -84,6 +84,7 @@ async function loadKNNModel() {
 
 // 手を検出するためのモデルを初期化する関数
 async function createHandDetector() {
+  // handPoseDetection はライブラリの機能
   const model = handPoseDetection.SupportedModels.MediaPipeHands; // MediaPipeHandsモデルを使用
   const detectorConfig = {
     runtime: "mediapipe", // or "tfjs", ランタイムの選択

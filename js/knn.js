@@ -91,6 +91,7 @@ async function setupKNN() {
 
 // 手を検出するためのモデルを初期化する関数
 async function createHandDetector() {
+  // handPoseDetection はライブラリの機能
   const model = handPoseDetection.SupportedModels.MediaPipeHands; // MediaPipeHandsモデルを使用
   const detectorConfig = {
     runtime: "mediapipe", // or "tfjs", ランタイムの選択
@@ -154,7 +155,7 @@ async function estimatePose(classifier, results) {
   await tf.nextFrame();
 }
 
-// 新しいポーズの学習を追加する関数
+// ポーズの学習を追加する関数
 async function addExample(classifier, classId, detector) {
   const results = await estimateHands(detector); // 手の検出結果を取得
   const keypoints = await getHandKeypoints(results); // 手のキーポイントを取得
@@ -166,7 +167,7 @@ async function addExample(classifier, classId, detector) {
     // フラット化した配列をテンソルに変換し、2次元の形に変形
     const tensor = tf.tensor(flattened).reshape([1, flattened.length]);
 
-    classifier.addExample(tensor, classId); // KNN分類器に新しいポーズを追加
+    classifier.addExample(tensor, classId); // KNN分類器にポーズを追加
     tensor.dispose();
   }
 }
