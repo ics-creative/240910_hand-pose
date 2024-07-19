@@ -1,36 +1,10 @@
+import { enableCam, createHandDetector } from "./utils.js";
 const decoLoadedImage = {}; // 画像を格納するオブジェクト
 const decoImageList = ["peace01", "peace02", "heart01", "heart02", "heart03"]; // 画像のリスト
 const webcamElement = document.getElementById("webcam");
 const canvasElement = document.getElementById("canvas");
 const canvasWrapperElement = document.getElementById("canvas-wrapper");
 const ctx = canvasElement.getContext("2d");
-
-// ウェブカメラを有効にする関数
-async function enableCam() {
-  const constraints = {
-    audio: false,
-    video: { width: 640, height: 480 },
-  };
-
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia(constraints);
-    webcamElement.srcObject = stream;
-
-    await new Promise((resolve) => {
-      webcamElement.onloadedmetadata = () => {
-        webcamElement.play();
-        resolve();
-      };
-    });
-
-    return await tf.data.webcam(webcamElement);
-  } catch (error) {
-    console.error("Error accessing webcam: ", error);
-    alert(
-      "カメラのアクセスに失敗しました。カメラのアクセス権限を確認してください。",
-    );
-  }
-}
 
 // Canvasの初期化関数
 function initCanvas() {
@@ -82,97 +56,73 @@ async function loadKNNModel() {
   return classifier;
 }
 
-// 手を検出するためのモデルを初期化する関数
-async function createHandDetector() {
-  // handPoseDetection はライブラリの機能
-  const model = handPoseDetection.SupportedModels.MediaPipeHands; // MediaPipeHandsモデルを使用
-  const detectorConfig = {
-    runtime: "mediapipe", // or "tfjs", ランタイムの選択
-    solutionPath: "https://cdn.jsdelivr.net/npm/@mediapipe/hands", // MediaPipeHandsのソリューションパス
-    modelType: "full", // モデルタイプを設定
-  };
-  // 手の検出器を作成
-  const detector = await handPoseDetection.createDetector(
-    model,
-    detectorConfig,
-  );
-
-  return detector;
-}
-
 // ウェブカメラの映像から手を検出する関数
 async function estimateHands(detector) {
-  const results = await detector.estimateHands(webcamElement, {
+  const hands = await detector.estimateHands(webcamElement, {
     flipHorizontal: false,
   });
-  return results;
+  return hands;
 }
 
-// 手のキーポイント（x, y, z）座標を取得する関数
-async function getHandKeypoints(results) {
-  if (results.length > 0) {
-    return results[0].keypoints3D.map((point) => [point.x, point.y, point.z]);
-  }
-  return null;
+// 手の3Dキーポイント（x, y, z）座標を取得する関数
+function getHandKeypoints3D(hands) {
+  return hands.map((hand) =>
+    hand.keypoints3D.map((point) => [point.x, point.y, point.z]),
+  );
+}
+
+// 3Dキーポイントをフラット化し、テンソルに変換する関数
+function flattenAndConvertToTensor(keypoints3D) {
+  // 3Dキーポイントをフラット化（1次元配列に変換）
+  const flattened = keypoints3D.flat();
+
+  // フラット化した配列をテンソルに変換し、2次元の形に変形
+  return tf.tensor(flattened).reshape([1, flattened.length]);
 }
 
 // 手のポーズを予測する関数
-async function estimatePose(classifier, results) {
-  if (classifier.getNumClasses() > 0) {
-    const keypoints = await getHandKeypoints(results); // 手のキーポイントを取得
+async function estimatePose(classifier, allHandKeypoints3D) {
+  if (classifier.getNumClasses() > 0 && allHandKeypoints3D.length > 0) {
+    return await Promise.all(
+      allHandKeypoints3D.map(async (keypoints3D) => {
+        const tensor = flattenAndConvertToTensor(keypoints3D); // フラット化しテンソルに変換
 
-    if (keypoints) {
-      // キーポイントをフラット化（1次元配列に変換）
-      const flattened = keypoints.flat();
+        // KNN分類器を使ってポーズを予測
+        const hand = await classifier.predictClass(tensor);
 
-      // フラット化した配列をテンソルに変換し、2次元の形に変形
-      const tensor = tf.tensor(flattened).reshape([1, flattened.length]);
+        const classes = ["ピース", "指ハート", "ほっぺハート", "なし"]; // 各ポーズ名を取得
+        const probabilities = hand.confidences; // 各ポーズの確率を取得
 
-      // KNN分類器を使ってポーズを予測
-      const result = await classifier.predictClass(tensor);
-
-      const classes = ["ピース", "指ハート", "ほっぺハート", "なし"]; // 各ポーズ名を取得
-      const probabilities = result.confidences; // 各ポーズの確率を取得
-
-      tensor.dispose();
-
-      return {
-        knnResult: classes[result.label],
-        knnProbability: probabilities[result.label],
-      };
-    }
-
-    return { knnResult: "なし", knnProbability: 0 }; // 何も検出されなかった場合のデフォルト値
+        tensor.dispose();
+        return {
+          knnResult: classes[hand.label],
+          knnProbability: probabilities[hand.label],
+        };
+      }),
+    );
   }
 
-  // 次のフレームで再度処理を行う
-  await tf.nextFrame();
+  return [{ knnResult: "なし", knnProbability: 0 }];
 }
 
 // Canvasに画像を描画する関数
-function drawCanvas(results, knnResult, knnProbability) {
-  if (!results || results.length === 0) return;
+function drawCanvas(hands, poses) {
+  if (!hands || hands.length === 0) return;
 
-  results.forEach((result) => {
-    const { keypoints, handedness } = result;
+  hands.forEach((hand, index) => {
+    const { keypoints, handedness } = hand;
+    const { knnResult, knnProbability } = poses[index];
 
-    // 手のキーポイントを名前（keypoint.name）から取得
-    const wrist = keypoints.find((keypoint) => keypoint.name === "wrist");
-    const thumbTip = keypoints.find(
-      (keypoint) => keypoint.name === "thumb_tip",
-    );
-    const indexFingerTip = keypoints.find(
-      (keypoint) => keypoint.name === "index_finger_tip",
-    );
-    const middleFingerMcp = keypoints.find(
-      (keypoint) => keypoint.name === "middle_finger_mcp",
-    );
-    const middleFingerTip = keypoints.find(
-      (keypoint) => keypoint.name === "middle_finger_tip",
-    );
-    const pinkyFingerMcp = keypoints.find(
-      (keypoint) => keypoint.name === "pinky_finger_mcp",
-    );
+    // 手のキーポイントを名前（keypoint.name）から取得する関数
+    const getKeypoint = (name) =>
+      keypoints.find((keypoint) => keypoint.name === name);
+
+    const wrist = getKeypoint("wrist"); // 手首のキーポイント
+    const thumbTip = getKeypoint("thumb_tip"); // 親指の先端のキーポイント
+    const indexFingerTip = getKeypoint("index_finger_tip"); // 人差し指の先端のキーポイント
+    const middleFingerMcp = getKeypoint("middle_finger_mcp"); // 中指の中手指節関節（付け根の関節）のキーポイント
+    const middleFingerTip = getKeypoint("middle_finger_tip"); // 中指の先端のキーポイント
+    const pinkyFingerMcp = getKeypoint("pinky_finger_mcp"); // 小指の中手指節関節（付け根の関節）のキーポイント
 
     // 位置の中間点を計算
     const indexMiddleMidPointX = (indexFingerTip.x + middleFingerTip.x) / 2;
@@ -180,54 +130,32 @@ function drawCanvas(results, knnResult, knnProbability) {
     const wristMiddleMidPointY = (middleFingerMcp.y + wrist.y) / 2;
 
     // 「どのポーズであるか」と「そのポーズである確率が1であるか」と「右手か左手か」で、画像と画像の貼る位置を変える
-    if (
-      knnResult === "ピース" &&
-      knnProbability === 1 &&
-      handedness === "Right"
-    ) {
+    if (knnProbability !== 1) return;
+
+    if (knnResult === "ピース") {
       drawDecoImage({
-        image: decoLoadedImage.peace01,
+        image: {
+          Right: decoLoadedImage.peace01,
+          Left: decoLoadedImage.peace02,
+        }[handedness],
         x: indexMiddleMidPointX,
         y: indexFingerTip.y - 30,
         scale: 3,
       });
-    } else if (
-      knnResult === "ピース" &&
-      knnProbability === 1 &&
-      handedness === "Left"
-    ) {
-      drawDecoImage({
-        image: decoLoadedImage.peace02,
-        x: indexMiddleMidPointX,
-        y: indexFingerTip.y - 30,
-        scale: 3,
-      });
-    } else if (knnResult === "指ハート" && knnProbability === 1) {
+    } else if (knnResult === "指ハート") {
       drawDecoImage({
         image: decoLoadedImage.heart03,
         x: thumbIndexMidPointX,
         y: indexFingerTip.y - 30,
         scale: 2,
       });
-    } else if (
-      knnResult === "ほっぺハート" &&
-      knnProbability === 1 &&
-      handedness === "Right"
-    ) {
+    } else if (knnResult === "ほっぺハート") {
       drawDecoImage({
-        image: decoLoadedImage.heart02,
-        x: pinkyFingerMcp.x,
-        y: wristMiddleMidPointY - 50,
-        scale: 2,
-      });
-    } else if (
-      knnResult === "ほっぺハート" &&
-      knnProbability === 1 &&
-      handedness === "Left"
-    ) {
-      drawDecoImage({
-        image: decoLoadedImage.heart01,
-        x: pinkyFingerMcp.x - 30,
+        image: {
+          Right: decoLoadedImage.heart02,
+          Left: decoLoadedImage.heart01,
+        }[handedness],
+        x: pinkyFingerMcp.x + (handedness === "Left" ? -30 : 0),
         y: wristMiddleMidPointY - 50,
         scale: 2,
       });
@@ -269,11 +197,14 @@ function drawDecoImage({ image, x, y, scale = 1, xFix = 0, yFix = 0 }) {
 // 毎フレーム走らせる処理
 async function render(detector, classifier) {
   // 手を検出する
-  const results = await estimateHands(detector);
+  const hands = await estimateHands(detector);
+  // 手の3Dキーポイントを取得する
+  const allHandKeypoints3D = getHandKeypoints3D(hands);
   // 手のポーズを予測する
-  const { knnResult, knnProbability } = await estimatePose(classifier, results);
+  const poses = await estimatePose(classifier, allHandKeypoints3D);
+
   drawWebCamToCanvas(); // canvasにvideoを描画する
-  drawCanvas(results, knnResult, knnProbability); // canvasにやりたいことを描画する
+  drawCanvas(hands, poses); // canvasにやりたいことを描画する
 
   window.requestAnimationFrame(() => render(detector, classifier));
 }
@@ -281,7 +212,7 @@ async function render(detector, classifier) {
 // 初期化関数
 async function init() {
   loadDecoImages(); // 画像を読み込む
-  await enableCam(); // ウェブカメラの起動
+  await enableCam(webcamElement); // ウェブカメラの起動
   const detector = await createHandDetector(); // 手検出モデルの初期化
   const classifier = await loadKNNModel(); // KNNモデルを読み込む
 

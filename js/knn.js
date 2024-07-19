@@ -1,37 +1,11 @@
+import { enableCam, createHandDetector } from "./utils.js";
 const webcamElement = document.getElementById("webcam"); // video要素
 const downloadButton = document.getElementById("download-button"); // ［download］ボタン
 const poseList = ["ピース", "指ハート", "ほっぺハート"]; // デフォルトのポーズ名を定義
 
-// ウェブカメラを有効にする関数
-async function enableCam() {
-  const constraints = {
-    audio: false,
-    video: { width: 640, height: 480 },
-  };
-
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia(constraints); // ウェブカメラのストリームを取得
-    webcamElement.srcObject = stream; // ストリームをvideo要素に設定
-
-    await new Promise((resolve) => {
-      webcamElement.onloadedmetadata = () => {
-        webcamElement.play(); // ストリームの再生を開始
-        resolve();
-      };
-    });
-
-    return await tf.data.webcam(webcamElement); // TensorFlow.jsのウェブカメラデータソースを返す
-  } catch (error) {
-    console.error("Error accessing webcam: ", error);
-    alert(
-      "カメラのアクセスに失敗しました。カメラのアクセス権限を確認してください。",
-    );
-  }
-}
-
 // イベントリスナーを追加する関数
 function addEventListeners(classifier, detector) {
-  // デフォルトのボタンのイベントリスナーを追加
+  // デフォルトの各ポーズボタンにイベントリスナーを追加し、クリック時に該当のポーズを学習させる
   document
     .getElementById("class-0")
     .addEventListener("click", () => addExample(classifier, 0, detector));
@@ -89,55 +63,42 @@ async function setupKNN() {
   return classifier;
 }
 
-// 手を検出するためのモデルを初期化する関数
-async function createHandDetector() {
-  // handPoseDetection はライブラリの機能
-  const model = handPoseDetection.SupportedModels.MediaPipeHands; // MediaPipeHandsモデルを使用
-  const detectorConfig = {
-    runtime: "mediapipe", // or "tfjs", ランタイムの選択
-    solutionPath: "https://cdn.jsdelivr.net/npm/@mediapipe/hands", // MediaPipeHandsのソリューションパス
-    modelType: "full", // モデルタイプを設定
-  };
-  // 手の検出器を作成
-  const detector = await handPoseDetection.createDetector(
-    model,
-    detectorConfig,
-  );
-
-  return detector;
-}
-
 // ウェブカメラの映像から手を検出する関数
 async function estimateHands(detector) {
-  const results = await detector.estimateHands(webcamElement, {
+  const hand = await detector.estimateHands(webcamElement, {
     flipHorizontal: false,
   });
-  return results;
+  return hand[0];
 }
 
-// 手のキーポイント（x, y, z）座標を取得する関数
-async function getHandKeypoints(results) {
-  if (results.length > 0) {
-    return results[0].keypoints3D.map((point) => [point.x, point.y, point.z]);
+// 手の3Dキーポイント（x, y, z）座標を取得する関数
+async function getHandKeypoints3D(hand) {
+  if (hand) {
+    return hand.keypoints3D.map((point) => [point.x, point.y, point.z]);
   }
   return null;
 }
 
+// 3Dキーポイントをフラット化し、テンソルに変換する関数
+function flattenAndConvertToTensor(keypoints3D) {
+  // 3Dキーポイントをフラット化（1次元配列に変換）
+  const flattened = keypoints3D.flat();
+
+  // フラット化した配列をテンソルに変換し、2次元の形に変形
+  return tf.tensor(flattened).reshape([1, flattened.length]);
+}
+
 // 手のポーズを予測する関数
-async function estimatePose(classifier, results) {
+async function estimatePose(classifier, hand) {
   if (classifier.getNumClasses() > 0) {
-    const keypoints = await getHandKeypoints(results); // 手のキーポイントを取得
+    const keypoints3D = await getHandKeypoints3D(hand); // 手の3Dキーポイントを取得
 
     // デフォルトの予測結果は「なし」とする
     let predictionText = "prediction: なし\nprobability: 1";
 
-    // 手のキーポイントが検出された場合のみ予測を更新
-    if (keypoints) {
-      // キーポイントをフラット化（1次元配列に変換）
-      const flattened = keypoints.flat();
-
-      // フラット化した配列をテンソルに変換し、2次元の形に変形
-      const tensor = tf.tensor(flattened).reshape([1, flattened.length]);
+    // 手の3Dキーポイントが検出された場合のみ予測を更新
+    if (keypoints3D) {
+      const tensor = flattenAndConvertToTensor(keypoints3D); // フラット化しテンソルに変換
 
       // KNN分類器を使ってポーズを予測
       const result = await classifier.predictClass(tensor);
@@ -157,15 +118,11 @@ async function estimatePose(classifier, results) {
 
 // ポーズの学習を追加する関数
 async function addExample(classifier, classId, detector) {
-  const results = await estimateHands(detector); // 手の検出結果を取得
-  const keypoints = await getHandKeypoints(results); // 手のキーポイントを取得
+  const hand = await estimateHands(detector); // 手の検出結果を取得
+  const keypoints3D = await getHandKeypoints3D(hand); // 手の3Dキーポイントを取得
 
-  if (keypoints) {
-    // キーポイントをフラット化（1次元配列に変換）
-    const flattened = keypoints.flat();
-
-    // フラット化した配列をテンソルに変換し、2次元の形に変形
-    const tensor = tf.tensor(flattened).reshape([1, flattened.length]);
+  if (keypoints3D) {
+    const tensor = flattenAndConvertToTensor(keypoints3D); // フラット化しテンソルに変換
 
     classifier.addExample(tensor, classId); // KNN分類器にポーズを追加
     tensor.dispose();
@@ -201,16 +158,16 @@ function downloadModel(classifier) {
 // 毎フレーム走らせる処理
 async function render(detector, classifier) {
   // 手を検出する
-  const results = await estimateHands(detector);
+  const hand = await estimateHands(detector);
   // 手のポーズを予測する
-  await estimatePose(classifier, results);
+  await estimatePose(classifier, hand);
 
   window.requestAnimationFrame(() => render(detector, classifier));
 }
 
 // 初期化関数
 async function init() {
-  await enableCam(); // ウェブカメラの起動
+  await enableCam(webcamElement); // ウェブカメラの起動
   const detector = await createHandDetector(); // 手検出モデルの初期化
   const classifier = await setupKNN(); // KNNモデルの準備
 
