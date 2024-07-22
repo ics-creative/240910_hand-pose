@@ -118,7 +118,7 @@ function drawCanvas(hands, poses) {
     const middleFingerMcp = getKeypoint("middle_finger_mcp"); // 中指の中手指節関節（付け根の関節）
     const middleFingerTip = getKeypoint("middle_finger_tip"); // 中指の先端
     const pinkyFingerMcp = getKeypoint("pinky_finger_mcp"); // 小指の中手指節関節（付け根の関節）
-    console.log(getKeypoint("index_finger_tip"));
+
     // 位置の中間点を計算
     const indexMiddleMidPointX = (indexFingerTip.x + middleFingerTip.x) / 2;
     const thumbIndexMidPointX = (thumbTip.x + indexFingerTip.x) / 2;
