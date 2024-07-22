@@ -1,4 +1,4 @@
-import { enableCam, createHandDetector } from "./utils.js";
+import { enableCam, createHandDetector, flattenAndConvertToTensor } from "./utils.js";
 const decoLoadedImage = {}; // 画像を格納するオブジェクト
 const decoImageList = ["peace01", "peace02", "heart01", "heart02", "heart03"]; // 画像のリスト
 const webcamElement = document.getElementById("webcam");
@@ -64,20 +64,11 @@ async function estimateHands(detector) {
   return hands;
 }
 
-// 手の3Dキーポイント（x, y, z）座標を取得する関数
+// 手のキーポイントの3D座標（x, y, z）を取得する関数
 function getHandKeypoints3D(hands) {
   return hands.map((hand) =>
     hand.keypoints3D.map((point) => [point.x, point.y, point.z]),
   );
-}
-
-// 3Dキーポイントをフラット化し、テンソルに変換する関数
-function flattenAndConvertToTensor(keypoints3D) {
-  // 3Dキーポイントをフラット化（1次元配列に変換）
-  const flattened = keypoints3D.flat();
-
-  // フラット化した配列をテンソルに変換し、2次元の形に変形
-  return tf.tensor(flattened).reshape([1, flattened.length]);
 }
 
 // 手のポーズを予測する関数
@@ -85,7 +76,7 @@ async function estimatePose(classifier, allHandKeypoints3D) {
   if (classifier.getNumClasses() > 0 && allHandKeypoints3D.length > 0) {
     return await Promise.all(
       allHandKeypoints3D.map(async (keypoints3D) => {
-        const tensor = flattenAndConvertToTensor(keypoints3D); // フラット化しテンソルに変換
+        const tensor = flattenAndConvertToTensor(keypoints3D); // キーポイントの3D座標をフラット化しテンソルに変換
 
         // KNN分類器を使ってポーズを予測
         const hand = await classifier.predictClass(tensor);
@@ -113,17 +104,17 @@ function drawCanvas(hands, poses) {
     const { keypoints, handedness } = hand;
     const { knnResult, knnProbability } = poses[index];
 
-    // 手のキーポイントを名前（keypoint.name）から取得する関数
+    // 手のキーポイントの2D座標（x, y）を名前（keypoint.name）から取得する関数
     const getKeypoint = (name) =>
       keypoints.find((keypoint) => keypoint.name === name);
 
-    const wrist = getKeypoint("wrist"); // 手首のキーポイント
-    const thumbTip = getKeypoint("thumb_tip"); // 親指の先端のキーポイント
-    const indexFingerTip = getKeypoint("index_finger_tip"); // 人差し指の先端のキーポイント
-    const middleFingerMcp = getKeypoint("middle_finger_mcp"); // 中指の中手指節関節（付け根の関節）のキーポイント
-    const middleFingerTip = getKeypoint("middle_finger_tip"); // 中指の先端のキーポイント
-    const pinkyFingerMcp = getKeypoint("pinky_finger_mcp"); // 小指の中手指節関節（付け根の関節）のキーポイント
-
+    const wrist = getKeypoint("wrist"); // 手首
+    const thumbTip = getKeypoint("thumb_tip"); // 親指の先端
+    const indexFingerTip = getKeypoint("index_finger_tip"); // 人差し指の先端
+    const middleFingerMcp = getKeypoint("middle_finger_mcp"); // 中指の中手指節関節（付け根の関節）
+    const middleFingerTip = getKeypoint("middle_finger_tip"); // 中指の先端
+    const pinkyFingerMcp = getKeypoint("pinky_finger_mcp"); // 小指の中手指節関節（付け根の関節）
+    console.log( getKeypoint("index_finger_tip"))
     // 位置の中間点を計算
     const indexMiddleMidPointX = (indexFingerTip.x + middleFingerTip.x) / 2;
     const thumbIndexMidPointX = (thumbTip.x + indexFingerTip.x) / 2;
@@ -140,14 +131,12 @@ function drawCanvas(hands, poses) {
         }[handedness],
         x: indexMiddleMidPointX,
         y: indexFingerTip.y - 30,
-        scale: 3,
       });
     } else if (knnResult === "指ハート") {
       drawDecoImage({
         image: decoLoadedImage.heart03,
         x: thumbIndexMidPointX,
         y: indexFingerTip.y - 30,
-        scale: 2,
       });
     } else if (knnResult === "ほっぺハート") {
       drawDecoImage({
@@ -157,7 +146,6 @@ function drawCanvas(hands, poses) {
         }[handedness],
         x: pinkyFingerMcp.x + (handedness === "Left" ? -30 : 0),
         y: wristMiddleMidPointY - 50,
-        scale: 2,
       });
     }
   });
@@ -173,23 +161,23 @@ function loadDecoImages() {
 }
 
 // 画像を描画する関数
-function drawDecoImage({ image, x, y, scale = 1, xFix = 0, yFix = 0 }) {
+function drawDecoImage({ image, x, y }) {
   const flippedX = canvasElement.width - x;
-  const dx = flippedX - image.width / scale / 2; // 画像の中心に合わせるための計算
-  const dy = y - image.height / scale / 2; // 画像の中心に合わせるための計算
+  const dx = flippedX - image.width / 2; // 画像の中心に合わせるための計算
+  const dy = y - image.height / 2; // 画像の中心に合わせるための計算
 
   ctx.save(); // 現在のキャンバス状態を保存
   ctx.translate(
-    dx + xFix + image.width / scale / 2,
-    dy + yFix + image.height / scale / 2,
+    dx + image.width / 2,
+    dy + image.height / 2,
   ); // 画像の中心に移動
 
   ctx.drawImage(
     image,
-    -image.width / scale / 2,
-    -image.height / scale / 2,
-    image.width / scale,
-    image.height / scale,
+    -image.width / 2,
+    -image.height / 2,
+    image.width,
+    image.height,
   );
   ctx.restore(); // 回転前の状態に戻す
 }
@@ -198,7 +186,7 @@ function drawDecoImage({ image, x, y, scale = 1, xFix = 0, yFix = 0 }) {
 async function render(detector, classifier) {
   // 手を検出する
   const hands = await estimateHands(detector);
-  // 手の3Dキーポイントを取得する
+  // 手のキーポイントの3D座標を取得する
   const allHandKeypoints3D = getHandKeypoints3D(hands);
   // 手のポーズを予測する
   const poses = await estimatePose(classifier, allHandKeypoints3D);

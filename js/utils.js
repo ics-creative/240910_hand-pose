@@ -24,7 +24,7 @@ export async function enableCam(webcamElement) {
   }
 }
 
-/** 手を検出するためのモデルを初期化する関数 **/
+/** 手を検出するためのhand-pose-detectionモデルを初期化する関数 **/
 export async function createHandDetector() {
   // handPoseDetection はライブラリの機能
   const model = handPoseDetection.SupportedModels.MediaPipeHands; // MediaPipeHandsモデルを使用
@@ -40,4 +40,13 @@ export async function createHandDetector() {
   );
 
   return detector;
+}
+
+/** 手のキーポイントの3D座標をフラット化し、テンソルに変換する関数 **/
+export function flattenAndConvertToTensor(keypoints3D) {
+  // キーポイントの3D座標をフラット化（1次元配列に変換）
+  const flattened = keypoints3D.flat();
+
+  // フラット化した配列をテンソルに変換し、2次元の形に変形
+  return tf.tensor(flattened).reshape([1, flattened.length]);
 }
