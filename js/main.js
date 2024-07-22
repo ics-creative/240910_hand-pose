@@ -1,4 +1,8 @@
-import { enableCam, createHandDetector, flattenAndConvertToTensor } from "./utils.js";
+import {
+  enableCam,
+  createHandDetector,
+  flattenAndConvertToTensor,
+} from "./utils.js";
 const decoLoadedImage = {}; // 画像を格納するオブジェクト
 const decoImageList = ["peace01", "peace02", "heart01", "heart02", "heart03"]; // 画像のリスト
 const webcamElement = document.getElementById("webcam");
@@ -114,7 +118,7 @@ function drawCanvas(hands, poses) {
     const middleFingerMcp = getKeypoint("middle_finger_mcp"); // 中指の中手指節関節（付け根の関節）
     const middleFingerTip = getKeypoint("middle_finger_tip"); // 中指の先端
     const pinkyFingerMcp = getKeypoint("pinky_finger_mcp"); // 小指の中手指節関節（付け根の関節）
-    console.log( getKeypoint("index_finger_tip"))
+    console.log(getKeypoint("index_finger_tip"));
     // 位置の中間点を計算
     const indexMiddleMidPointX = (indexFingerTip.x + middleFingerTip.x) / 2;
     const thumbIndexMidPointX = (thumbTip.x + indexFingerTip.x) / 2;
@@ -167,10 +171,7 @@ function drawDecoImage({ image, x, y }) {
   const dy = y - image.height / 2; // 画像の中心に合わせるための計算
 
   ctx.save(); // 現在のキャンバス状態を保存
-  ctx.translate(
-    dx + image.width / 2,
-    dy + image.height / 2,
-  ); // 画像の中心に移動
+  ctx.translate(dx + image.width / 2, dy + image.height / 2); // 画像の中心に移動
 
   ctx.drawImage(
     image,

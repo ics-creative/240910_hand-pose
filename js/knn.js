@@ -1,4 +1,8 @@
-import { enableCam, createHandDetector, flattenAndConvertToTensor } from "./utils.js";
+import {
+  enableCam,
+  createHandDetector,
+  flattenAndConvertToTensor,
+} from "./utils.js";
 const webcamElement = document.getElementById("webcam"); // video要素
 const downloadButton = document.getElementById("download-button"); // ［download］ボタン
 const poseList = ["ピース", "指ハート", "ほっぺハート"]; // デフォルトのポーズ名を定義
