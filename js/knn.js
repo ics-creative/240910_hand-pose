@@ -62,7 +62,7 @@ function addClassButtonToDOM(newPoseName, classId, detector, classifier) {
 }
 
 // KNN分類器を準備する関数
-async function setupKNN() {
+function setupKNN() {
   const classifier = knnClassifier.create(); // TensorFlow.jsのKNN分類器を作成
   return classifier;
 }
@@ -76,7 +76,7 @@ async function estimateHands(detector) {
 }
 
 // 手のキーポイントの3D座標（x, y, z）を取得する関数
-async function getHandKeypoints3D(hand) {
+function getHandKeypoints3D(hand) {
   if (hand) {
     return hand.keypoints3D.map((point) => [point.x, point.y, point.z]);
   }

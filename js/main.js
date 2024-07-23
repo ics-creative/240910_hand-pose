@@ -3,6 +3,7 @@ import {
   createHandDetector,
   flattenAndConvertToTensor,
 } from "./utils.js";
+
 const decoLoadedImage = {}; // 画像を格納するオブジェクト
 const decoImageList = ["peace01", "peace02", "heart01", "heart02", "heart03"]; // 画像のリスト
 const webcamElement = document.getElementById("webcam");
@@ -97,7 +98,7 @@ async function estimatePose(classifier, allHandKeypoints3D) {
     );
   }
 
-  return [{ knnResult: "なし", knnProbability: 0 }];
+  return [{knnResult: "なし", knnProbability: 0}];
 }
 
 // Canvasに画像を描画する関数
@@ -105,8 +106,8 @@ function drawCanvas(hands, poses) {
   if (!hands || hands.length === 0) return;
 
   hands.forEach((hand, index) => {
-    const { keypoints, handedness } = hand;
-    const { knnResult, knnProbability } = poses[index];
+    const {keypoints, handedness} = hand;
+    const {knnResult, knnProbability} = poses[index];
 
     // 手のキーポイントの2D座標（x, y）を名前（keypoint.name）から取得する関数
     const getKeypoint = (name) =>
@@ -119,9 +120,11 @@ function drawCanvas(hands, poses) {
     const middleFingerTip = getKeypoint("middle_finger_tip"); // 中指の先端
     const pinkyFingerMcp = getKeypoint("pinky_finger_mcp"); // 小指の中手指節関節（付け根の関節）
 
-    // 位置の中間点を計算
+    // 人差し指と中指の中間点（X座標）
     const indexMiddleMidPointX = (indexFingerTip.x + middleFingerTip.x) / 2;
+    // 親指と人差し指の中間点（X座標）
     const thumbIndexMidPointX = (thumbTip.x + indexFingerTip.x) / 2;
+    // 手首と中指の中間点（Y座標）
     const wristMiddleMidPointY = (middleFingerMcp.y + wrist.y) / 2;
 
     // 「どのポーズであるか」と「そのポーズである確率が1であるか」と「右手か左手か」で、画像と画像の貼る位置を変える
@@ -165,7 +168,7 @@ function loadDecoImages() {
 }
 
 // 画像を描画する関数
-function drawDecoImage({ image, x, y }) {
+function drawDecoImage({image, x, y}) {
   const flippedX = canvasElement.width - x;
   const dx = flippedX - image.width / 2; // 画像の中心に合わせるための計算
   const dy = y - image.height / 2; // 画像の中心に合わせるための計算
