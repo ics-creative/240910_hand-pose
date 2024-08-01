@@ -164,7 +164,7 @@ async function render(detector, classifier) {
 async function init() {
   await enableCam(webcamElement); // ウェブカメラの起動
   const detector = await createHandDetector(); // 手検出モデルの初期化
-  const classifier = await setupKNN(); // KNNモデルの準備
+  const classifier = setupKNN(); // KNNモデルの準備
 
   addEventListeners(classifier, detector); // イベントリスナーの設定
   render(detector, classifier); // 毎フレーム走らせる処理
